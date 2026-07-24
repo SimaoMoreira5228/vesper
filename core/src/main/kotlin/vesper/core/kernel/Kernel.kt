@@ -7,6 +7,7 @@ import vesper.core.ICpu
 import vesper.core.IKernel
 import vesper.core.IMemoryBus
 import vesper.core.cpu.Cpu
+import vesper.core.gpu.GeState
 import vesper.core.memory.Address
 
 class Kernel(
@@ -18,7 +19,7 @@ class Kernel(
     val synchPrimitives: SynchPrimitives = SynchPrimitives(scheduler),
     val fileIo: FileIo = FileIo(),
     val memoryManager: MemoryManager = MemoryManager(),
-    val display: DisplayStub = DisplayStub(),
+    val geState: GeState = GeState(),
     val controller: ControllerStub = ControllerStub(),
 ) : IKernel, Loggable {
 
@@ -182,10 +183,11 @@ class Kernel(
         syscallTable.register(Nids.DISPLAY_SET_MODE, "sceDisplaySetMode") { _, _ -> 0 }
         syscallTable.register(Nids.DISPLAY_GET_MODE, "sceDisplayGetMode") { _, _ -> 0 }
 
-        syscallTable.register(Nids.DISPLAY_SET_FRAMEBUF, "sceDisplaySetFrameBuf") { _, cpu ->
-            display.framebufferAddr = Address(cpu.state.gpr(4).toUInt())
-            display.framebufferStride = cpu.state.gpr(5)
-            display.framebufferPixelFormat = cpu.state.gpr(6)
+        syscallTable.register(Nids.DISPLAY_SET_FRAMEBUF, "sceDisplaySetFrameBuf") { kernel, cpu ->
+            val addr = Address(cpu.state.gpr(4).toUInt())
+            val stride = cpu.state.gpr(5)
+            val format = cpu.state.gpr(6)
+            kernel.geState.setDisplayBuf(addr, stride, format)
             0
         }
 

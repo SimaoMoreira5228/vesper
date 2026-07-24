@@ -5,6 +5,7 @@ plugins {
 
 dependencies {
     implementation(project(":platform"))
+    implementation(project(":core"))
     implementation(project(":common"))
 }
 

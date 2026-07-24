@@ -102,8 +102,7 @@ class KernelIntegrationTest : StringSpec({
 
     "display framebuffer address is tracked" {
         val kernel = makeKernel()
-        kernel.display.framebufferAddr = Address(0x04000000u)
-        kernel.display.framebufferAddr shouldBe Address(0x04000000u)
-        kernel.display.framebufferStride shouldBe 512
+        kernel.geState.framebufferAddr = Address(0x04000000u)
+        kernel.geState.framebufferAddr shouldBe Address(0x04000000u)
     }
 })

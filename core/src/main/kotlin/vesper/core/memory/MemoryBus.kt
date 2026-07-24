@@ -1,3 +1,5 @@
+@file:OptIn(kotlin.ExperimentalUnsignedTypes::class)
+
 package vesper.core.memory
 
 import vesper.common.Logger
