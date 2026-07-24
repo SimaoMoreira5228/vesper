@@ -32,6 +32,16 @@ class CpuState {
         if (index != 0) gpr[index] = value
     }
 
+    fun copyFrom(other: CpuState) {
+        other.gpr.copyInto(gpr)
+        pc = other.pc
+        nextPc = other.nextPc
+        hi = other.hi
+        lo = other.lo
+        inDelaySlot = other.inDelaySlot
+        exceptionPending = other.exceptionPending
+    }
+
     override fun toString(): String {
         val sb = StringBuilder()
         sb.appendLine("PC: $pc  HI: 0x${hi.toUInt().toString(16).padStart(8, '0')}  LO: 0x${lo.toUInt().toString(16).padStart(8, '0')}")

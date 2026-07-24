@@ -10,3 +10,15 @@ allprojects {
         mavenCentral()
     }
 }
+
+tasks.register("testAll") {
+    dependsOn(":tests:test")
+    description = "Run all tests"
+    group = "verification"
+}
+
+tasks.register("testCore") {
+    dependsOn(":core:test")
+    description = "Run core module tests"
+    group = "verification"
+}

@@ -1,7 +1,6 @@
 package vesper.core.cpu
 
 import vesper.common.Loggable
-import vesper.common.Logger
 import vesper.common.info
 import vesper.common.warn
 import vesper.core.ICpu
@@ -20,17 +19,25 @@ class Cpu(
 
     override val pc: Address get() = state.pc
 
-    private var halted: Boolean = false
+    var halted: Boolean = false
+        internal set
+
+    private var lastInsnPc: Address = Address.ZERO
 
     override fun reset() {
         state.reset(Address(0x08900000u))
         halted = false
-        info { "CPU reset to entry point $pc" }
+        kernel?.let { info { "CPU reset with kernel" } }
     }
 
     override fun step() {
         if (halted) return
+        if (kernel?.isExitRequested() == true) {
+            halted = true
+            return
+        }
 
+        lastInsnPc = state.pc
         val insn = memory.read32(state.pc)
 
         state.pc = if (state.inDelaySlot) state.nextPc else state.pc + Address(4u)
@@ -49,17 +56,20 @@ class Cpu(
         state.exceptionPending = exception
     }
 
+    fun getLastInsnAddress(): Address = lastInsnPc
+
     private fun handleException(exception: CpuException) {
         when (exception) {
             is CpuException.Syscall -> {
-                kernel?.handleSyscall(0, this)
+                val nid = state.gpr(2)
+                val result = kernel?.handleSyscall(nid, this) ?: 0
+                state.setGpr(2, result)
             }
             is CpuException.Breakpoint -> {
-                warn { "Breakpoint hit at $pc" }
                 halted = true
             }
             is CpuException.ReservedInstruction -> {
-                warn { "Reserved instruction at $pc" }
+                warn { "Reserved instruction at $lastInsnPc" }
                 halted = true
             }
             is CpuException.AddressError -> {
@@ -68,11 +78,11 @@ class Cpu(
                 halted = true
             }
             is CpuException.ArithmeticOverflow -> {
-                warn { "Arithmetic overflow" }
+                warn { "Arithmetic overflow at $lastInsnPc" }
                 halted = true
             }
             is CpuException.UnimplementedInstruction -> {
-                warn { "Unimplemented instruction opcode=0x${exception.opcode.toString(16)} funct=0x${exception.funct.toString(16)}" }
+                warn { "Unimplemented opcode=0x${exception.opcode.toString(16)} funct=0x${exception.funct.toString(16)} at $lastInsnPc" }
                 halted = true
             }
         }
@@ -83,6 +93,7 @@ class Cpu(
         while (!halted && count < instructions) {
             step()
             count++
+            kernel?.checkCallbacks()
         }
     }
 

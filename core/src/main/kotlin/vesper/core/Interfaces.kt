@@ -22,4 +22,6 @@ interface IMemoryBus {
 
 interface IKernel {
     fun handleSyscall(id: Int, cpu: ICpu): Int
+    fun isExitRequested(): Boolean
+    fun checkCallbacks(): Boolean
 }
