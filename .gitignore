@@ -1,5 +1,11 @@
 local/
 .idea/
+.kotlin/
 build/
+**/bin/
 .gradle/
 *.iml
+tests/__testoutput.txt
+tests/__testerror.txt
+tests/src/test/resources/pspautotests/
+tests/bin/

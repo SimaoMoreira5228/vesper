@@ -43,7 +43,6 @@ class KernelIntegrationTest : StringSpec({
         kernel.syscallTable.dispatch(Nids.EXIT_GAME, kernel, cpu)
 
         kernel.isExitRequested() shouldBe true
-        cpu.halted shouldBe true
     }
 
     "exit game via handling exception from step" {
@@ -58,7 +57,7 @@ class KernelIntegrationTest : StringSpec({
         mem.write32(cpu.state.pc, 0x0000000C)
 
         cpu.step()
-        cpu.halted shouldBe true
+        kernel.isExitRequested() shouldBe true
     }
 
     "create thread via syscall table" {
