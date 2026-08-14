@@ -41,6 +41,14 @@ object Opcode {
     const val BNEL      = 0x15
     const val BLEZL     = 0x16
     const val BGTZL     = 0x17
+    const val VFPU0     = 0x18
+    const val VFPU1     = 0x19
+    const val LV_S      = 0x32
+    const val VFPU4     = 0x34
+    const val LV_Q      = 0x36
+    const val VFPU5     = 0x37
+    const val SV_S      = 0x3A
+    const val SV_Q      = 0x3E
 }
 
 object Funct {
@@ -289,7 +297,7 @@ fun disassemble(pc: Int, insn: Int): String {
         }
 
         Opcode.COP0 -> "COP0 $rs $rt $rd"
-        Opcode.COP1 -> "COP1 $rs $rt $rd"
+        Opcode.COP1 -> disassembleCop1(pc, insn)
         Opcode.COP2 -> "COP2 $rs $rt $rd"
         Opcode.LWC1, Opcode.SWC1 -> "$opName ${regName(rt)}, $immSigned(${regName(rs)})"
 

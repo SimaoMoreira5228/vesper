@@ -183,8 +183,12 @@ class Kernel(
             val fd = cpu.state.gpr(4)
             val bufPtr = Address(cpu.state.gpr(5).toUInt())
             val count = cpu.state.gpr(6)
-            kernel.kemulator.captureWrite(fd, bufPtr, count, kernel.memory)
-            kernel.fileIo.write(fd, bufPtr, count, kernel)
+            if (fd == 1 || fd == 2) {
+                kernel.kemulator.captureWrite(fd, bufPtr, count, kernel.memory)
+                count
+            } else {
+                kernel.fileIo.write(fd, bufPtr, count, kernel)
+            }
         }
 
         syscallTable.register(Nids.IO_SEEK, "sceIoLseek") { kernel, cpu ->

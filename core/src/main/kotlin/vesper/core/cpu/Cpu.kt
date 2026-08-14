@@ -28,18 +28,19 @@ class Cpu(
     var traceStepCount: Int = 0
         private set
 
-    private val crashTrace: MutableList<String> = mutableListOf()
-    val lastTrace: List<String> get() = crashTrace.toList()
+    private val crashTrace = InstructionTrace(crashTraceSize)
+    val lastTrace: List<String> get() = crashTrace.lines()
 
     fun recordCrashTrace() {
         try {
             java.io.StringWriter().use { sw ->
-                sw.write("[CPU Crash] --- Last ${crashTrace.size} instructions ---\n")
-                if (crashTrace.isEmpty()) {
-                    sw.write("  (empty - size is ${crashTrace.size})\n")
+                val traceLines = crashTrace.lines()
+                sw.write("[CPU Crash] --- Last ${traceLines.size} instructions ---\n")
+                if (traceLines.isEmpty()) {
+                    sw.write("  (empty - size is ${traceLines.size})\n")
                 }
                 var idx = 0
-                for (line in crashTrace) {
+                for (line in traceLines) {
                     val first80 = line.take(80)
                     sw.write("  [$idx] $first80\n")
                     idx++
@@ -87,14 +88,10 @@ class Cpu(
         }
 
         traceStepCount++
-        val traceLine = "0x${state.pc.value.toString(16).padStart(8, '0')}: 0x${insn.toUInt().toString(16).padStart(8, '0')}  ${disassemble(state.pc.value.toInt(), insn)}  " +
-            "a0=${state.gpr(4)} a1=${state.gpr(5)} a2=${state.gpr(6)} a3=${state.gpr(7)} " +
-            "v0=${state.gpr(2)} v1=${state.gpr(3)} ra=${state.gpr(31).toUInt().toString(16)} sp=${state.gpr(29).toUInt().toString(16)}"
         if (traceInstructions) {
-            trace { traceLine }
+            trace { formatInstructionTrace(instructionPc.value, insn, state) }
         }
-        crashTrace.add(traceLine)
-        if (crashTrace.size > crashTraceSize) crashTrace.removeAt(0)
+        crashTrace.record(instructionPc.value, insn, state)
 
         OpcodeTable.dispatch(this, insn)
 

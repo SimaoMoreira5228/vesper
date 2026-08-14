@@ -13,8 +13,14 @@ class PspAutotestRunner(
         private set
     var stopReason: StopReason = StopReason.NOT_STARTED
         private set
+    var finalPc: String = "n/a"
+        private set
+    var recentTrace: List<String> = emptyList()
+        private set
+    var outputStats: String = "n/a"
+        private set
 
-    enum class StopReason { NOT_STARTED, HALTED, INSTRUCTION_LIMIT }
+    enum class StopReason { NOT_STARTED, KERNEL_EXIT, CPU_HALTED, INSTRUCTION_LIMIT }
 
     fun run(prxBytes: ByteArray): String {
         val memory = MemoryBus()
@@ -44,12 +50,14 @@ class PspAutotestRunner(
         }
 
         stepsExecuted = steps
+        finalPc = cpu.pc.toString()
+        recentTrace = cpu.lastTrace.takeLast(3)
+        outputStats = kernel.kemulator.outputStats()
         if (steps >= maxInstructions) {
             stopReason = StopReason.INSTRUCTION_LIMIT
-            val trace = cpu.lastTrace.takeLast(3).joinToString(" | ")
-            throw AssertionError("Reached max instructions ($maxInstructions) at PC ${cpu.pc}; recent=$trace")
+            throw AssertionError("Reached max instructions ($maxInstructions) at PC ${cpu.pc}; recent=${recentTrace.joinToString(" | ")}")
         }
-        stopReason = StopReason.HALTED
+        stopReason = if (kernel.isExitRequested()) StopReason.KERNEL_EXIT else StopReason.CPU_HALTED
         return kernel.kemulator.output
     }
 }

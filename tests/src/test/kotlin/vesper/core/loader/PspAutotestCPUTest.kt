@@ -53,4 +53,20 @@ class PspAutotestCPUTest : StringSpec({
         output.shouldNotBeEmpty()
         output.trimEnd() shouldBe expected("cpu/fpu/fcr.expected")
     }
+
+    "fpu_scalar" {
+        val prx = resource("cpu/fpu/fpu.prx")
+        val output = PspAutotestRunner(maxInstructions = 300_000_000).run(prx)
+
+        output.shouldNotBeEmpty()
+        output.trimEnd() shouldBe expected("cpu/fpu/fpu.expected")
+    }
+
+    "load_store_unaligned" {
+        val prx = resource("cpu/lsu/lsu.prx")
+        val output = runner.run(prx)
+
+        output.shouldNotBeEmpty()
+        output.trimEnd() shouldBe expected("cpu/lsu/lsu.expected")
+    }
 })

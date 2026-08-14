@@ -18,12 +18,15 @@ class KemulatorDevice(
         const val DEVCTL_GET_HAS_DISPLAY = 0x00000001
         const val DEVCTL_EMIT_SCREENSHOT = 0x00000020
         const val DEVCTL_SEND_CTRLDATA = 0x00000010
+        private const val maxCapturedWrite = 1024 * 1024
     }
 
     private val capturedOutput = StringBuilder()
     private enum class OutputSource { DEVCTL, WRITE, DIRECT }
     private var lastOutputSource: OutputSource? = null
     private var lastOutputText: String? = null
+    private val sourceWrites = IntArray(OutputSource.entries.size)
+    private val sourceChars = IntArray(OutputSource.entries.size)
 
     val output: String get() = capturedOutput.toString()
 
@@ -81,10 +84,14 @@ class KemulatorDevice(
 
     fun outputCount(): Int = capturedOutput.length
 
+    fun outputStats(): String = OutputSource.entries.joinToString(", ") { source ->
+        "${source.name.lowercase()}=${sourceWrites[source.ordinal]}/${sourceChars[source.ordinal]}"
+    }
+
     fun capture(text: String) = appendOutput(text, OutputSource.DIRECT)
 
     fun captureWrite(fd: Int, bufPtr: Address, count: Int, memory: IMemoryBus) {
-        if (count <= 0 || count > 8192) return
+        if (count <= 0 || count > maxCapturedWrite) return
         val data = memory.readBytes(bufPtr, count)
         // Strip null bytes (replace with spaces) to make printf output readable
         val sanitized = data.map { b ->
@@ -118,11 +125,15 @@ class KemulatorDevice(
         capturedOutput.clear()
         lastOutputSource = null
         lastOutputText = null
+        sourceWrites.fill(0)
+        sourceChars.fill(0)
     }
 
     private fun appendOutput(text: String, source: OutputSource) {
         if (text == lastOutputText && source != lastOutputSource) return
         capturedOutput.append(text)
+        sourceWrites[source.ordinal]++
+        sourceChars[source.ordinal] += text.length
         lastOutputText = text
         lastOutputSource = source
         onOutput?.invoke(text)

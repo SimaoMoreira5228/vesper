@@ -20,6 +20,9 @@ fun main(args: Array<String>) {
     println("=== End ===")
     println("Steps: ${runner.stepsExecuted}")
     println("Stop: ${runner.stopReason}")
+    println("Final PC: ${runner.finalPc}")
+    println("Output writes: ${runner.outputStats}")
+    println("Recent: ${runner.recentTrace.joinToString(" | ")}")
 
     if (expectedPath != null) {
         val expected = java.io.File(expectedPath).readText().replace("\r\n", "\n").trimEnd()

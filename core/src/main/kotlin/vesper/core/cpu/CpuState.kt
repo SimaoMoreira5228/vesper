@@ -13,6 +13,8 @@ class CpuState {
 
     val fpr: FloatArray = FloatArray(32)
     val fcr: IntArray = IntArray(32)
+    val vpr: FloatArray = FloatArray(128) { Float.NaN }
+    val vfpuCtrl: IntArray = IntArray(16)
 
     fun reset(entryPoint: Address) {
         gpr.fill(0)
@@ -20,8 +22,12 @@ class CpuState {
         lo = 0
         fpr.fill(0f)
         fcr.fill(0)
+        vpr.fill(Float.NaN)
+        vfpuCtrl.fill(0)
         fcr[0] = 0x00003351
         fcr[31] = 0x00000E00
+        vfpuCtrl[0] = 0xE4
+        vfpuCtrl[1] = 0xE4
         inDelaySlot = false
         exceptionPending = null
         pc = entryPoint
@@ -45,6 +51,8 @@ class CpuState {
         lo = other.lo
         other.fpr.copyInto(fpr)
         other.fcr.copyInto(fcr)
+        other.vpr.copyInto(vpr)
+        other.vfpuCtrl.copyInto(vfpuCtrl)
         inDelaySlot = other.inDelaySlot
         exceptionPending = other.exceptionPending
     }

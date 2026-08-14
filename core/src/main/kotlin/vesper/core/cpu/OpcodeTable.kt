@@ -58,8 +58,16 @@ object OpcodeTable {
         handlers[Opcode.LWC1] = InstructionHandler(FloatingPoint::executeLoad)
         handlers[Opcode.SWC1] = InstructionHandler(FloatingPoint::executeStore)
         handlers[Opcode.COP1] = InstructionHandler(FloatingPoint::executeCop1)
-        handlers[Opcode.COP2] = InstructionHandler { _, _ -> }
+        handlers[Opcode.COP2] = InstructionHandler(VectorUnit::executeCop2)
         handlers[Opcode.COP1X] = InstructionHandler { _, _ -> }
+        handlers[Opcode.VFPU0] = InstructionHandler(VectorUnit::executeArithmetic)
+        handlers[Opcode.VFPU1] = InstructionHandler(VectorUnit::executeArithmetic)
+        handlers[Opcode.LV_S] = InstructionHandler(VectorUnit::executeMemory)
+        handlers[Opcode.VFPU4] = InstructionHandler(VectorUnit::executeVfpu4)
+        handlers[Opcode.LV_Q] = InstructionHandler(VectorUnit::executeMemory)
+        handlers[Opcode.VFPU5] = InstructionHandler(VectorUnit::executeVfpu5)
+        handlers[Opcode.SV_S] = InstructionHandler(VectorUnit::executeMemory)
+        handlers[Opcode.SV_Q] = InstructionHandler(VectorUnit::executeMemory)
 
         specialHandlers[Funct.SLL] = InstructionHandler(Arithmetic::executeSll)
         specialHandlers[Funct.SRL] = InstructionHandler { cpu, insn ->
