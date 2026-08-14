@@ -59,10 +59,16 @@ object OpcodeTable {
         handlers[Opcode.COP1X] = InstructionHandler { _, _ -> }
 
         specialHandlers[Funct.SLL] = InstructionHandler(Arithmetic::executeSll)
-        specialHandlers[Funct.SRL] = InstructionHandler(Arithmetic::executeSrl)
+        specialHandlers[Funct.SRL] = InstructionHandler { cpu, insn ->
+            if (instructionRs(insn) == 1) Arithmetic.executeRor(cpu, insn)
+            else Arithmetic.executeSrl(cpu, insn)
+        }
         specialHandlers[Funct.SRA] = InstructionHandler(Arithmetic::executeSra)
         specialHandlers[Funct.SLLV] = InstructionHandler(Arithmetic::executeSllv)
-        specialHandlers[Funct.SRLV] = InstructionHandler(Arithmetic::executeSrlv)
+        specialHandlers[Funct.SRLV] = InstructionHandler { cpu, insn ->
+            if ((insn and 0x40) != 0) Arithmetic.executeRorv(cpu, insn)
+            else Arithmetic.executeSrlv(cpu, insn)
+        }
         specialHandlers[Funct.SRAV] = InstructionHandler(Arithmetic::executeSrav)
         specialHandlers[Funct.JR] = InstructionHandler(ControlFlow::executeJr)
         specialHandlers[Funct.JALR] = InstructionHandler(ControlFlow::executeJalr)
@@ -78,6 +84,8 @@ object OpcodeTable {
         specialHandlers[Funct.MULTU] = InstructionHandler(MultiplyDivide::executeMultu)
         specialHandlers[Funct.DIV] = InstructionHandler(MultiplyDivide::executeDiv)
         specialHandlers[Funct.DIVU] = InstructionHandler(MultiplyDivide::executeDivu)
+        specialHandlers[0x16] = InstructionHandler(Arithmetic::executeClz)
+        specialHandlers[0x17] = InstructionHandler(Arithmetic::executeClo)
         specialHandlers[0x1C] = InstructionHandler(MultiplyDivide::executeMadd)
         specialHandlers[0x1D] = InstructionHandler(MultiplyDivide::executeMaddu)
         specialHandlers[Funct.MUL] = InstructionHandler(MultiplyDivide::executeMul)
@@ -91,8 +99,10 @@ object OpcodeTable {
         specialHandlers[Funct.NOR] = InstructionHandler(Arithmetic::executeNor)
         specialHandlers[Funct.SLT] = InstructionHandler(Arithmetic::executeSlt)
         specialHandlers[Funct.SLTU] = InstructionHandler(Arithmetic::executeSltu)
+        specialHandlers[0x2C] = InstructionHandler(Arithmetic::executeMax)
         specialHandlers[0x2D] = InstructionHandler(Arithmetic::executeMin)
-        specialHandlers[0x2E] = InstructionHandler(Arithmetic::executeMax)
+        specialHandlers[0x2E] = InstructionHandler(MultiplyDivide::executeMsub)
+        specialHandlers[0x2F] = InstructionHandler(MultiplyDivide::executeMsubu)
 
         regimmHandlers[RegImm.BLTZ] = InstructionHandler(ControlFlow::executeBltz)
         regimmHandlers[RegImm.BGEZ] = InstructionHandler(ControlFlow::executeBgez)
@@ -121,11 +131,17 @@ object OpcodeTable {
                 Arithmetic.executeExt(cpu, insn)
         }
         special3Handlers[0x04] = InstructionHandler(Arithmetic::executeIns)
-        special3Handlers[0x20] = InstructionHandler(Arithmetic::executeSeb)
-        special3Handlers[0x21] = InstructionHandler(Arithmetic::executeSeh)
+        special3Handlers[0x20] = InstructionHandler { cpu, insn ->
+            when (instructionShamt(insn)) {
+                0x02 -> Arithmetic.executeWsbh(cpu, insn)
+                0x03 -> Arithmetic.executeWsbw(cpu, insn)
+                0x10 -> Arithmetic.executeSeb(cpu, insn)
+                0x14 -> Arithmetic.executeBitrev(cpu, insn)
+                0x18 -> Arithmetic.executeSeh(cpu, insn)
+                else -> cpu.raiseException(CpuException.ReservedInstruction)
+            }
+        }
 
-        special2Handlers[0x20] = InstructionHandler(Arithmetic::executeClz)
-        special2Handlers[0x21] = InstructionHandler(Arithmetic::executeClo)
     }
 
     fun dispatch(cpu: Cpu, instruction: Int) {

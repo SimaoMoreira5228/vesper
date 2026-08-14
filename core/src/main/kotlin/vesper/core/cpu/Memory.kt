@@ -79,9 +79,8 @@ object MemoryAccess {
         val shift = offset * 8
         val mem = cpu.memory.read32(alignedAddr)
         val current = cpu.state.gpr(rt)
-        val memMask = (-1 shl shift)
-        val currentMask = memMask.inv()
-        val newVal = (mem and memMask) or (current and currentMask)
+        val newVal = (current and (0x00FFFFFF ushr shift)) or
+            (mem shl (24 - shift))
         cpu.state.setGpr(rt, newVal)
     }
 
@@ -94,9 +93,8 @@ object MemoryAccess {
         val shift = offset * 8
         val mem = cpu.memory.read32(alignedAddr)
         val current = cpu.state.gpr(rt)
-        val memMask = (1 shl shift) - 1
-        val currentMask = memMask.inv()
-        val newVal = (mem and memMask) or (current and currentMask)
+        val newVal = (current and (0xFFFFFF00.toInt() shl (24 - shift))) or
+            (mem ushr shift)
         cpu.state.setGpr(rt, newVal)
     }
 
@@ -108,9 +106,8 @@ object MemoryAccess {
         val shift = offset * 8
         val rt = cpu.state.gpr(instructionRt(insn))
         val mem = cpu.memory.read32(alignedAddr)
-        val regMask = (-1 shl shift)
-        val memMask = regMask.inv()
-        val newVal = (rt and regMask) or (mem and memMask)
+        val newVal = (rt ushr (24 - shift)) or
+            (mem and (0xFFFFFF00.toInt() shl shift))
         cpu.memory.write32(alignedAddr, newVal)
     }
 
@@ -122,9 +119,8 @@ object MemoryAccess {
         val shift = offset * 8
         val rt = cpu.state.gpr(instructionRt(insn))
         val mem = cpu.memory.read32(alignedAddr)
-        val regMask = (1 shl shift) - 1
-        val memMask = regMask.inv()
-        val newVal = (rt and regMask) or (mem and memMask)
+        val newVal = (rt shl shift) or
+            (mem and (0x00FFFFFF ushr (24 - shift)))
         cpu.memory.write32(alignedAddr, newVal)
     }
 }

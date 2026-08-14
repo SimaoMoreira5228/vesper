@@ -18,12 +18,7 @@ fun main(args: Array<String>) {
             val outLen = output.length
             val expLen = expected.length
             println("Output len: $outLen, Expected len: $expLen")
-            for (i in 0 until minOf(outLen, expLen, 200)) {
-                if (output.getOrElse(i) { ' ' } != expected.getOrElse(i) { ' ' }) {
-                    println("  First diff at pos $i: actual=0x${output[i].code.toString(16)} expected=0x${expected[i].code.toString(16)}")
-                    break
-                }
-            }
+            println(PspAutotestDiff.render(expected, output.trimEnd()))
         }
     }
 }

@@ -10,7 +10,7 @@ import vesper.core.memory.Address
 class ModuleLoader : Loggable {
 
     override val tag: String get() = "ModuleLoader"
-    private val defaultBase = 0x08800000u
+    private val defaultBase = 0x08804000u
 
     var stdoutAddr: Address? = null
         private set

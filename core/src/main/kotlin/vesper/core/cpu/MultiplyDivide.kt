@@ -96,4 +96,22 @@ object MultiplyDivide {
         cpu.state.lo = result.toInt()
         cpu.state.hi = (result shr 32).toInt()
     }
+
+    fun executeMsub(cpu: Cpu, insn: Int) {
+        val rs = cpu.state.gpr(instructionRs(insn)).toLong()
+        val rt = cpu.state.gpr(instructionRt(insn)).toLong()
+        val acc = (cpu.state.hi.toUInt().toLong() shl 32) or cpu.state.lo.toUInt().toLong()
+        val result = acc - rs * rt
+        cpu.state.lo = result.toInt()
+        cpu.state.hi = (result shr 32).toInt()
+    }
+
+    fun executeMsubu(cpu: Cpu, insn: Int) {
+        val rs = cpu.state.gpr(instructionRs(insn)).toUInt().toLong()
+        val rt = cpu.state.gpr(instructionRt(insn)).toUInt().toLong()
+        val acc = (cpu.state.hi.toUInt().toLong() shl 32) or cpu.state.lo.toUInt().toLong()
+        val result = acc - rs * rt
+        cpu.state.lo = result.toInt()
+        cpu.state.hi = (result shr 32).toInt()
+    }
 }

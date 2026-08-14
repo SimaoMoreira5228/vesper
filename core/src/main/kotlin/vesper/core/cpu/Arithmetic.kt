@@ -180,6 +180,18 @@ object Arithmetic {
         cpu.state.setGpr(instructionRd(insn), rt shr (rs and 0x1F))
     }
 
+    fun executeRor(cpu: Cpu, insn: Int) {
+        val rt = cpu.state.gpr(instructionRt(insn))
+        val shift = instructionShamt(insn)
+        cpu.state.setGpr(instructionRd(insn), if (shift == 0) rt else (rt ushr shift) or (rt shl (32 - shift)))
+    }
+
+    fun executeRorv(cpu: Cpu, insn: Int) {
+        val rt = cpu.state.gpr(instructionRt(insn))
+        val shift = cpu.state.gpr(instructionRs(insn)) and 0x1F
+        cpu.state.setGpr(instructionRd(insn), if (shift == 0) rt else (rt ushr shift) or (rt shl (32 - shift)))
+    }
+
     fun executeSeb(cpu: Cpu, insn: Int) {
         val rt = cpu.state.gpr(instructionRt(insn))
         cpu.state.setGpr(instructionRd(insn), rt.toByte().toInt())
@@ -194,6 +206,20 @@ object Arithmetic {
         val rt = cpu.state.gpr(instructionRt(insn))
         val result = ((rt ushr 8) and 0x00FF00FF) or ((rt shl 8) and 0xFF00FF00.toInt())
         cpu.state.setGpr(instructionRd(insn), result)
+    }
+
+    fun executeWsbw(cpu: Cpu, insn: Int) {
+        val rt = cpu.state.gpr(instructionRt(insn))
+        val result = ((rt ushr 24) and 0x000000FF) or
+            ((rt ushr 8) and 0x0000FF00) or
+            ((rt shl 8) and 0x00FF0000) or
+            ((rt shl 24) and 0xFF000000.toInt())
+        cpu.state.setGpr(instructionRd(insn), result)
+    }
+
+    fun executeBitrev(cpu: Cpu, insn: Int) {
+        val value = cpu.state.gpr(instructionRt(insn))
+        cpu.state.setGpr(instructionRd(insn), Integer.reverse(value))
     }
 
     fun executeMin(cpu: Cpu, insn: Int) {

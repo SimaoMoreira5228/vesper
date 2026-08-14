@@ -99,7 +99,7 @@ class MemoryAccessTest : StringSpec({
         c.state.setGpr(2, 0)
 
         OpcodeTable.dispatch(c, iType(Opcode.LWL, 1, 2, 0))
-        c.state.gpr(2) shouldBe 0xAABB0000.toInt()
+        c.state.gpr(2) shouldBe 0xBBCCDD00.toInt()
     }
 
     "LWR loads word right (unaligned)" {
@@ -108,15 +108,15 @@ class MemoryAccessTest : StringSpec({
         c.state.setGpr(2, 0)
 
         OpcodeTable.dispatch(c, iType(Opcode.LWR, 1, 2, 0))
-        c.state.gpr(2) shouldBe 0x0000CCDD
+        c.state.gpr(2) shouldBe 0x0000AABB
     }
 
     "SWL + SWR stores unaligned word" {
         val c = cpu()
-        c.state.setGpr(1, 0x08800102)
+        c.state.setGpr(1, 0x08800100)
         c.state.setGpr(2, 0xAABBCCDD.toInt())
 
-        OpcodeTable.dispatch(c, iType(Opcode.SWL, 1, 2, 0))
+        OpcodeTable.dispatch(c, iType(Opcode.SWL, 1, 2, 3))
         OpcodeTable.dispatch(c, iType(Opcode.SWR, 1, 2, 0))
 
         c.memory.read32(Address(0x08800100u)) shouldBe 0xAABBCCDD.toInt()
