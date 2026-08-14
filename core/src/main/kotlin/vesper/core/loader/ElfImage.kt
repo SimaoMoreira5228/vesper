@@ -7,7 +7,21 @@ data class ElfImage(
     val segments: List<Segment>,
     val moduleName: String = "",
     val sdkVersion: Int = 0,
-)
+    val imports: List<ImportEntry> = emptyList(),
+    val importModules: List<ImportModule> = emptyList(),
+    val relocGroups: List<SegmentRelocs> = emptyList(),
+    val moduleAttr: Int = 0,
+    val numSegments: Int = 0,
+    val bssSize: UInt = 0u,
+    val isPrx: Boolean = false,
+    val pspHeader: PspHeader? = null,
+    val globalPointer: UInt = 0u,
+) {
+    val totalBssSize: UInt get() {
+        val implicit = segments.sumOf { it.size.toLong() - it.data.size.toLong() }.toUInt()
+        return implicit + bssSize
+    }
+}
 
 data class ModuleInfo(
     val name: String,
@@ -19,11 +33,10 @@ data class ModuleInfo(
         const val SIZE = 48
 
         fun read(bytes: ByteArray, offset: Int): ModuleInfo {
-            val nameOffset = bytes.read16(offset).toInt()
-            val gp = bytes.read32(offset + 4)
-            val entry = bytes.read32(offset + 8)
-            val exit = bytes.read32(offset + 12)
-            val name = readCString(bytes, offset + 16 + nameOffset)
+            val name = readCString(bytes, offset + 4, 28)
+            val gp = bytes.read32(offset + 32)
+            val entry = bytes.read32(offset + 36)
+            val exit = bytes.read32(offset + 40)
             return ModuleInfo(
                 name = name,
                 gp = gp,
@@ -43,10 +56,10 @@ data class ModuleInfo(
                     ((this[offset + 3].toInt() and 0xFF) shl 24)
         }
 
-        private fun readCString(bytes: ByteArray, offset: Int): String {
+        private fun readCString(bytes: ByteArray, offset: Int, maxLength: Int): String {
             val sb = StringBuilder()
             var i = offset
-            while (i < bytes.size && bytes[i].toInt() != 0) {
+            while (i < minOf(bytes.size, offset + maxLength) && bytes[i].toInt() != 0) {
                 sb.append(bytes[i].toInt().toChar())
                 i++
             }
