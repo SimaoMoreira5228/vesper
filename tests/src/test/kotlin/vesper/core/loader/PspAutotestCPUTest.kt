@@ -45,4 +45,12 @@ class PspAutotestCPUTest : StringSpec({
         output.shouldNotBeEmpty()
         output.trimEnd() shouldBe expected("cpu/cpu_alu/cpu_branch2.expected")
     }
+
+    "fpu_fcr" {
+        val prx = resource("cpu/fpu/fcr.prx")
+        val output = runner.run(prx)
+
+        output.shouldNotBeEmpty()
+        output.trimEnd() shouldBe expected("cpu/fpu/fcr.expected")
+    }
 })

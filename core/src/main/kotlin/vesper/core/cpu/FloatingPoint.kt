@@ -9,6 +9,15 @@ import kotlin.math.sqrt
 object FloatingPoint {
     private const val CONDITION_BIT = 1 shl 23
     private const val FLUSH_TO_ZERO_BIT = 1 shl 24
+    private const val FCR31_WRITABLE_MASK = 0x0181FFFF
+    private const val FLAG_INEXACT = 1 shl 2
+    private const val FLAG_UNDERFLOW = 1 shl 3
+    private const val FLAG_OVERFLOW = 1 shl 4
+    private const val FLAG_INVALID = 1 shl 6
+    private const val CAUSE_INEXACT = 1 shl 12
+    private const val CAUSE_UNDERFLOW = 1 shl 13
+    private const val CAUSE_OVERFLOW = 1 shl 14
+    private const val CAUSE_INVALID = 1 shl 16
 
     fun executeLoad(cpu: Cpu, insn: Int) {
         val address = effectiveAddress(cpu, insn)
@@ -27,7 +36,11 @@ object FloatingPoint {
             4 -> cpu.state.fpr[instructionRd(insn)] = Float.fromBits(cpu.state.gpr(instructionRt(insn)))
             6 -> {
                 val register = instructionRd(insn)
-                if (register != 0) cpu.state.fcr[register] = cpu.state.gpr(instructionRt(insn))
+                when (register) {
+                    0 -> Unit
+                    31 -> cpu.state.fcr[31] = cpu.state.gpr(instructionRt(insn)) and FCR31_WRITABLE_MASK
+                    else -> cpu.state.fcr[register] = cpu.state.gpr(instructionRt(insn))
+                }
             }
             8 -> executeBranch(cpu, insn)
             16 -> executeSingle(cpu, insn)
@@ -48,8 +61,14 @@ object FloatingPoint {
             0x00 -> fs + ft
             0x01 -> fs - ft
             0x02 -> fs * ft
-            0x03 -> fs / ft
-            0x04 -> sqrt(fs)
+            0x03 -> if (ft == 0f) {
+                recordException(cpu, FLAG_INVALID, CAUSE_INVALID)
+                fs / ft
+            } else fs / ft
+            0x04 -> if (fs < 0f) {
+                recordException(cpu, FLAG_INVALID, CAUSE_INVALID)
+                sqrt(fs)
+            } else sqrt(fs)
             0x05 -> kotlin.math.abs(fs)
             0x06 -> fs
             0x07 -> -fs
@@ -64,6 +83,13 @@ object FloatingPoint {
                 return
             }
         }
+        if (fs.isNaN() || ft.isNaN()) recordException(cpu, FLAG_INVALID, CAUSE_INVALID)
+        if (result.isInfinite() && fs.isFinite() && ft.isFinite())
+            recordException(cpu, FLAG_OVERFLOW or FLAG_INEXACT, CAUSE_OVERFLOW or CAUSE_INEXACT)
+        if (result != 0f && abs(result) < 1.17549435E-38f)
+            recordException(cpu, FLAG_UNDERFLOW or FLAG_INEXACT, CAUSE_UNDERFLOW or CAUSE_INEXACT)
+        if (funct in 0x00..0x03 && result.isFinite() && fs.isFinite() && ft.isFinite() && ft != 0f)
+            recordException(cpu, FLAG_INEXACT, CAUSE_INEXACT)
         cpu.state.fpr[fd] = flush(result, cpu.state.fcr[31])
     }
 
@@ -86,6 +112,10 @@ object FloatingPoint {
     private fun setCondition(cpu: Cpu, value: Boolean) {
         cpu.state.fcr[31] = if (value) cpu.state.fcr[31] or CONDITION_BIT
         else cpu.state.fcr[31] and CONDITION_BIT.inv()
+    }
+
+    private fun recordException(cpu: Cpu, flag: Int, cause: Int) {
+        cpu.state.fcr[31] = cpu.state.fcr[31] or flag or cause
     }
 
     private fun compare(code: Int, left: Float, right: Float): Boolean {
