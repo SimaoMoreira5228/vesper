@@ -12,11 +12,16 @@ class CpuState {
     var exceptionPending: CpuException? = null
 
     val fpr: FloatArray = FloatArray(32)
+    val fcr: IntArray = IntArray(32)
 
     fun reset(entryPoint: Address) {
         gpr.fill(0)
         hi = 0
         lo = 0
+        fpr.fill(0f)
+        fcr.fill(0)
+        fcr[0] = 0x00003351
+        fcr[31] = 0x00000E00
         inDelaySlot = false
         exceptionPending = null
         pc = entryPoint
@@ -38,6 +43,8 @@ class CpuState {
         nextPc = other.nextPc
         hi = other.hi
         lo = other.lo
+        other.fpr.copyInto(fpr)
+        other.fcr.copyInto(fcr)
         inDelaySlot = other.inDelaySlot
         exceptionPending = other.exceptionPending
     }

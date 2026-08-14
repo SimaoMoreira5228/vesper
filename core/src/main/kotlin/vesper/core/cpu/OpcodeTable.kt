@@ -55,6 +55,9 @@ object OpcodeTable {
         handlers[Opcode.SWL] = InstructionHandler(MemoryAccess::executeSwl)
         handlers[Opcode.SW] = InstructionHandler(MemoryAccess::executeSw)
         handlers[Opcode.SWR] = InstructionHandler(MemoryAccess::executeSwr)
+        handlers[Opcode.LWC1] = InstructionHandler(FloatingPoint::executeLoad)
+        handlers[Opcode.SWC1] = InstructionHandler(FloatingPoint::executeStore)
+        handlers[Opcode.COP1] = InstructionHandler(FloatingPoint::executeCop1)
         handlers[Opcode.COP2] = InstructionHandler { _, _ -> }
         handlers[Opcode.COP1X] = InstructionHandler { _, _ -> }
 

@@ -1,7 +1,7 @@
 package vesper.core.loader
 
 object PspAutotestDiff {
-    fun render(expected: String, actual: String, context: Int = 2): String {
+    fun render(expected: String, actual: String, context: Int = 2, maxLines: Int = 80): String {
         val expectedLines = expected.split('\n')
         val actualLines = actual.split('\n')
         var first = 0
@@ -25,20 +25,23 @@ object PspAutotestDiff {
         val from = (first - context).coerceAtLeast(0)
         val toExpected = (expectedEnd + context).coerceAtMost(lastExpected)
         val toActual = (actualEnd + context).coerceAtMost(lastActual)
-        val lines = buildList {
+        val diffLines = buildList {
             add("--- expected")
             add("+++ actual")
             add("@@ lines ${first + 1}-${expectedEnd + 1} / ${first + 1}-${actualEnd + 1} @@")
             for (line in from..maxOf(toExpected, toActual)) {
                 val expectedLine = expectedLines.getOrNull(line)
                 val actualLine = actualLines.getOrNull(line)
-                when {
-                    expectedLine == actualLine && expectedLine != null -> add("  $expectedLine")
-                    expectedLine != null -> add("- $expectedLine")
-                    actualLine != null -> add("+ $actualLine")
+                if (expectedLine == actualLine && expectedLine != null) {
+                    add("  $expectedLine")
+                } else {
+                    expectedLine?.let { add("- $it") }
+                    actualLine?.let { add("+ $it") }
                 }
             }
         }
-        return lines.joinToString("\n")
+        if (diffLines.size <= maxLines) return diffLines.joinToString("\n")
+        val omitted = diffLines.size - maxLines
+        return (diffLines.take(maxLines) + "... ($omitted diff lines omitted)").joinToString("\n")
     }
 }

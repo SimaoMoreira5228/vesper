@@ -55,10 +55,12 @@ tasks.register<JavaExec>("runPspAutotest") {
     val prx = providers.gradleProperty("prx")
     val expected = providers.gradleProperty("expected")
     val trace = providers.gradleProperty("trace")
+    val maxInstructions = providers.gradleProperty("maxInstructions")
     args = buildList {
         prx.orNull?.let { add(rootProject.file(it).absolutePath) }
         expected.orNull?.let { add(rootProject.file(it).absolutePath) }
         trace.orNull?.let { add(it) }
+        maxInstructions.orNull?.let { add(it) }
     }
 }
 

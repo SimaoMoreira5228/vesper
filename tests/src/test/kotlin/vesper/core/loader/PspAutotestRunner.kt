@@ -7,8 +7,14 @@ import vesper.core.memory.MemoryBus
 class PspAutotestRunner(
     val traceFirst: Int = 0,
     val traceInstructions: Boolean = false,
+    val maxInstructions: Int = 100_000_000,
 ) {
-    private val maxInstructions = 100_000_000
+    var stepsExecuted: Int = 0
+        private set
+    var stopReason: StopReason = StopReason.NOT_STARTED
+        private set
+
+    enum class StopReason { NOT_STARTED, HALTED, INSTRUCTION_LIMIT }
 
     fun run(prxBytes: ByteArray): String {
         val memory = MemoryBus()
@@ -37,9 +43,13 @@ class PspAutotestRunner(
             steps++
         }
 
+        stepsExecuted = steps
         if (steps >= maxInstructions) {
-            throw AssertionError("Reached max instructions ($maxInstructions)")
+            stopReason = StopReason.INSTRUCTION_LIMIT
+            val trace = cpu.lastTrace.takeLast(3).joinToString(" | ")
+            throw AssertionError("Reached max instructions ($maxInstructions) at PC ${cpu.pc}; recent=$trace")
         }
+        stopReason = StopReason.HALTED
         return kernel.kemulator.output
     }
 }
