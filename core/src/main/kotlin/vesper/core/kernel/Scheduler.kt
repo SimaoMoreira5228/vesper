@@ -55,6 +55,7 @@ class Scheduler(
 
     private val readyQueue = mutableListOf<Int>()
     private val waitingThreads = mutableListOf<Pair<Long, Int>>()
+    private var nextStackTop = 0x09F00000
 
     private var idleThreadId: Int = createIdleThread()
 
@@ -90,7 +91,9 @@ class Scheduler(
 
         val saved = CpuState()
         saved.pc = entryPoint
-        saved.setGpr(29, 0x08800000 + 0x100000 - stackSize)
+        val stackTop = nextStackTop
+        nextStackTop -= (stackSize + 0xFFF) and 0xFFFFF000.toInt()
+        saved.setGpr(29, stackTop - 16)
 
         val thread = KThread(
             id = id,
@@ -99,7 +102,7 @@ class Scheduler(
             status = ThreadStatus.Dormant,
             entryPoint = entryPoint,
             savedState = saved,
-            stackBase = 0x08800000 + 0x100000 - stackSize,
+            stackBase = nextStackTop,
             stackSize = stackSize,
             attr = attr,
             exitStatus = 0,
@@ -108,10 +111,13 @@ class Scheduler(
         return id
     }
 
-    fun startThread(threadId: Int): Int {
+    fun startThread(threadId: Int, userDataLength: Int = 0, userDataPtr: Int = 0, gp: Int = 0): Int {
         val thread = threads[threadId] ?: return -1
         if (thread.status != ThreadStatus.Dormant) return -1
 
+        thread.savedState.setGpr(4, userDataLength)
+        thread.savedState.setGpr(5, userDataPtr)
+        thread.savedState.setGpr(28, gp)
         thread.status = ThreadStatus.Ready
         readyQueue.add(threadId)
         reschedule()
@@ -144,7 +150,6 @@ class Scheduler(
         if (thread.status is ThreadStatus.Waiting) {
             thread.status = ThreadStatus.Ready
             readyQueue.add(threadId)
-            reschedule()
             return 0
         }
         return -1
@@ -211,7 +216,9 @@ class Scheduler(
         }
 
         if (readyQueue.isEmpty()) {
-            currentThreadId = idleThreadId
+            if (current != null) {
+                current.status = ThreadStatus.Running
+            }
             return
         }
 
@@ -221,10 +228,7 @@ class Scheduler(
 
         next.status = ThreadStatus.Running
         currentThreadId = nextId
-
-        if (next.id != idleThreadId) {
-            restoreState(next)
-        }
+        if (next.id != idleThreadId) restoreState(next)
     }
 
     private fun saveState(thread: KThread) {

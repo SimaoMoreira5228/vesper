@@ -30,15 +30,17 @@ object Nids {
     val IO_OPEN: Int = 0x109F50BC
     val IO_CLOSE: Int = 0x810C4BC3.toInt()
     val IO_READ: Int = 0x6A638D83
-    val IO_WRITE: Int = 0x42B4CAC2
+    val IO_WRITE: Int = 0x42EC03AC
     val IO_SEEK: Int = 0x2FE3D65A
     val IO_REMOVE: Int = 0x6052B81E
     val IO_MKDIR: Int = 0x7E0DD0CA.toInt()
     val IO_RMDIR: Int = 0x61133EF8
-    val IO_IOCTL: Int = 0xCFBDFCBB.toInt()
+    val IO_DEVCtl: Int = 0x54F5FB11.toInt()
+    val IO_IOCTL: Int = 0x63632449
     val DISPLAY_SET_MODE: Int = 0x0E20F177
     val DISPLAY_GET_MODE: Int = 0xDEA197D4.toInt()
     val DISPLAY_SET_FRAMEBUF: Int = 0x2897D6CA
+    val DISPLAY_SET_FRAMEBUF2: Int = 0x289D82FE.toInt()
     val DISPLAY_GET_FRAMEBUF: Int = 0x07E40DD2
     val DISPLAY_WAIT_VBLANK_START: Int = 0x984C2753.toInt()
     val DISPLAY_WAIT_VBLANK_START_CB: Int = 0x46E7DF86
@@ -65,4 +67,10 @@ object Nids {
     val GE_LIST_ENQUEUE: Int = 0xAB490D9C.toInt()
     val MODULE_LOAD: Int = 0xB6F1385B.toInt()
     val MODULE_START: Int = 0x315C0DE5
+    val SYS_MEM_ALLOC_PARTITION: Int = 0x237DBD4F
+    val SYS_MEM_GET_BLOCK_HEAD: Int = 0x9D9A5BA1.toInt()
+    val SYS_MEM_MAX_FREE: Int = 0xA291F107.toInt()
+    val SYS_MEM_TOTAL_FREE: Int = 0xF919F628.toInt()
+    val SYS_MEM_SET_COMPILED_SDK: Int = 0x7591C7DB
+    val SYS_MEM_SET_COMPILER: Int = 0xF77D77CB.toInt()
 }

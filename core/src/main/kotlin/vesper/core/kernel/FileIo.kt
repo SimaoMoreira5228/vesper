@@ -38,11 +38,11 @@ class FileIo : Loggable {
     fun resolvePath(pspPath: String): File? {
         for ((device, root) in mountPoints) {
             if (pspPath.startsWith(device, ignoreCase = true)) {
-                val relative = pspPath.removePrefix(device).trimStart('/')
+                val relative = pspPath.removePrefix(device).trimStart('/').trimEnd('/')
                 return File(root, relative)
             }
         }
-        val cleaned = pspPath.replace('\\', '/')
+        val cleaned = pspPath.replace('\\', '/').trimEnd('/')
         if (cleaned.startsWith("/")) {
             return File(cleaned)
         }
@@ -60,7 +60,7 @@ class FileIo : Loggable {
         }
 
         try {
-            val raf = RandomAccessFile(resolved, if ((flags and 0x1) != 0) "rw" else "r")
+            val raf = RandomAccessFile(resolved, "rw")
             fds[fd] = FileDescriptor(id = fd, path = path, flags = flags, hostFile = raf)
             return fd
         } catch (e: Exception) {
@@ -122,6 +122,10 @@ class FileIo : Loggable {
             warn { "Failed to seek fd $fd: ${e.message}" }
             -1L
         }
+    }
+
+    fun devctl(name: String, cmd: Int, inData: ByteArray?, inLen: Int, outData: ByteArray?): Int {
+        return -1
     }
 
     fun listOpenFiles(): List<FileDescriptor> = fds.values.toList()

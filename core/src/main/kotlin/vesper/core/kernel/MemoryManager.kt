@@ -20,8 +20,8 @@ class MemoryManager : Loggable {
     private val partitions = mutableListOf<MemoryPartition>()
     private val allocs = mutableMapOf<Int, MemoryPartition>()
 
-    private val heapBase = 0x08800000
-    private val heapSize = 0x00800000
+    private val heapBase = 0x08900000
+    private val heapSize = 0x01600000
 
     init {
         partitions.add(
@@ -43,22 +43,22 @@ class MemoryManager : Loggable {
         addr: Int = -1,
     ): Int {
         val alignedSize = (size + 0xFF) and 0xFFFFF00
-        for (part in partitions) {
-            if (!part.allocated && part.size >= alignedSize) {
-                val alloc = MemoryPartition(
-                    id = nextPartitionId++,
-                    name = name,
-                    type = type,
-                    baseAddr = if (addr >= 0) addr else part.baseAddr,
-                    size = alignedSize,
-                    allocated = true,
-                )
-                allocs[alloc.id] = alloc
-                part.allocated = true
-                return alloc.id
-            }
+        // Calculate how much space is already used in the User partition
+        val used = allocs.values.sumOf { it.size }
+        val remaining = heapSize - used
+        if (remaining >= alignedSize) {
+            val alloc = MemoryPartition(
+                id = nextPartitionId++,
+                name = name,
+                type = type,
+                baseAddr = if (addr >= 0) addr else (heapBase + used),
+                size = alignedSize,
+                allocated = true,
+            )
+            allocs[alloc.id] = alloc
+            return alloc.id
         }
-        warn { "Failed to allocate ${alignedSize} bytes for $name" }
+        warn { "Failed to allocate ${alignedSize} bytes for $name (remaining=$remaining)" }
         return -1
     }
 
@@ -77,10 +77,12 @@ class MemoryManager : Loggable {
     }
 
     fun maxFreeMemSize(): Int {
-        return partitions.filter { !it.allocated }.maxOfOrNull { it.size } ?: 0
+        val used = allocs.values.sumOf { it.size }
+        return (heapSize - used).coerceAtLeast(0)
     }
 
     fun totalFreeMemSize(): Int {
-        return partitions.filter { !it.allocated }.sumOf { it.size }
+        val used = allocs.values.sumOf { it.size }
+        return (heapSize - used).coerceAtLeast(0)
     }
 }

@@ -21,13 +21,22 @@ class Kernel(
     val memoryManager: MemoryManager = MemoryManager(),
     val geState: GeState = GeState(),
     val controller: ControllerStub = ControllerStub(),
+    val kemulator: KemulatorDevice = KemulatorDevice(),
 ) : IKernel, Loggable {
 
     override val tag: String get() = "Kernel"
 
     private var exitRequested: Boolean = false
+    val importMap = mutableMapOf<Address, Int>()
+
+    fun registerImport(stubAddr: Address, nid: Int) {
+        importMap[stubAddr] = nid
+    }
+
+    override fun resolveImport(pc: Address): Int? = importMap[pc]
 
     fun init() {
+        syscallTable.registerAllKpspemuStubs()
         registerAllSyscalls()
         info { "Kernel initialized" }
         timer.reset()
@@ -50,14 +59,12 @@ class Kernel(
     private fun registerAllSyscalls() {
         syscallTable.register(Nids.EXIT_GAME, "sceKernelExitGame") { _, _ ->
             exitRequested = true
-            cpu.halted = true
             info { "sceKernelExitGame" }
             0
         }
 
         syscallTable.register(Nids.EXIT_GAME_WITH_STATUS, "sceKernelExitGameWithStatus") { _, _ ->
             exitRequested = true
-            cpu.halted = true
             info { "sceKernelExitGameWithStatus" }
             0
         }
@@ -77,7 +84,12 @@ class Kernel(
 
         syscallTable.register(Nids.THREAD_START, "sceKernelStartThread") { kernel, cpu ->
             val threadId = cpu.state.gpr(4)
-            kernel.scheduler.startThread(threadId)
+            kernel.scheduler.startThread(
+                threadId = threadId,
+                userDataLength = cpu.state.gpr(5),
+                userDataPtr = cpu.state.gpr(6),
+                gp = cpu.state.gpr(28),
+            )
         }
 
         syscallTable.register(Nids.THREAD_EXIT, "sceKernelExitThread") { kernel, cpu ->
@@ -151,12 +163,13 @@ class Kernel(
             val path = readStringFromMemory(kernel.memory, Address(cpu.state.gpr(4).toUInt()))
             val flags = cpu.state.gpr(5)
             val mode = cpu.state.gpr(6)
-            kernel.fileIo.open(path, flags, mode)
+            val fd = kernel.fileIo.open(path, flags, mode)
+            fd
         }
 
         syscallTable.register(Nids.IO_CLOSE, "sceIoClose") { kernel, cpu ->
             val fd = cpu.state.gpr(4)
-            kernel.fileIo.close(fd)
+            if (fd <= 2) 0 else kernel.fileIo.close(fd)
         }
 
         syscallTable.register(Nids.IO_READ, "sceIoRead") { kernel, cpu ->
@@ -170,6 +183,7 @@ class Kernel(
             val fd = cpu.state.gpr(4)
             val bufPtr = Address(cpu.state.gpr(5).toUInt())
             val count = cpu.state.gpr(6)
+            kernel.kemulator.captureWrite(fd, bufPtr, count, kernel.memory)
             kernel.fileIo.write(fd, bufPtr, count, kernel)
         }
 
@@ -189,6 +203,37 @@ class Kernel(
             val format = cpu.state.gpr(6)
             kernel.geState.setDisplayBuf(addr, stride, format)
             0
+        }
+
+        syscallTable.register(Nids.DISPLAY_SET_FRAMEBUF2, "sceDisplaySetFrameBuf2") { kernel, cpu ->
+            val addr = Address(cpu.state.gpr(4).toUInt())
+            val stride = cpu.state.gpr(5)
+            val format = cpu.state.gpr(6)
+            kernel.geState.setDisplayBuf(addr, stride, format)
+            0
+        }
+
+        syscallTable.register(Nids.SYS_MEM_ALLOC_PARTITION, "sceKernelAllocPartitionMemory") { kernel, cpu ->
+            val partition = cpu.state.gpr(4)
+            val namePtr = Address(cpu.state.gpr(5).toUInt())
+            val type = cpu.state.gpr(6)
+            val size = cpu.state.gpr(7)
+            val name = readStringFromMemory(kernel.memory, namePtr)
+            val result = kernel.memoryManager.allocPartitionMemory(name, type, size)
+            result
+        }
+
+        syscallTable.register(Nids.SYS_MEM_GET_BLOCK_HEAD, "sceKernelGetBlockHeadAddr") { kernel, cpu ->
+            val blockId = cpu.state.gpr(4)
+            kernel.memoryManager.getBlockAddress(blockId)
+        }
+
+        syscallTable.register(Nids.SYS_MEM_MAX_FREE, "sceKernelMaxFreeMemSize") { kernel, _ ->
+            kernel.memoryManager.maxFreeMemSize()
+        }
+
+        syscallTable.register(Nids.SYS_MEM_TOTAL_FREE, "sceKernelTotalFreeMemSize") { kernel, _ ->
+            kernel.memoryManager.totalFreeMemSize()
         }
 
         syscallTable.register(Nids.DISPLAY_WAIT_VBLANK_START, "sceDisplayWaitVblankStart") { _, _ -> 0 }
@@ -246,10 +291,71 @@ class Kernel(
 
         syscallTable.register(Nids.UTILITY_LOAD_MODULE, "sceUtilityLoadModule") { _, _ -> 0 }
         syscallTable.register(Nids.UTILITY_UNLOAD_MODULE, "sceUtilityUnloadModule") { _, _ -> 0 }
+
+        syscallTable.register(Nids.SYS_MEM_SET_COMPILED_SDK, "sceKernelSetCompiledSdkVersion") { _, _ -> 0 }
+        syscallTable.register(Nids.SYS_MEM_SET_COMPILER, "sceKernelSetCompilerVersion") { _, _ -> 0 }
+
+        syscallTable.register(0x172D316E, "sceKernelStdin") { _, _ -> 0 }
+        syscallTable.register(0xA6BAB2E9.toInt(), "sceKernelStdout") { _, _ -> 1 }
+        syscallTable.register(0xF78BA90A.toInt(), "sceKernelStderr") { _, _ -> 2 }
+        syscallTable.register(0x13A5ABEF.toInt(), "sceKernelPrintf") { kernel, cpu ->
+            val fmtPtr = Address(cpu.state.gpr(4).toUInt())
+            if (fmtPtr.value >= 0x08800000u) {
+                var len = 0
+                while (len < 4096 && kernel.memory.read8(fmtPtr + len) != 0) len++
+                if (len > 0) {
+                    val raw = kernel.memory.readBytes(fmtPtr, len).decodeToString()
+                    kernel.kemulator.capture(raw)
+                }
+            }
+            0
+        }
+
+        syscallTable.register(0xD675EBB8.toInt(), "sceKernelSelfStopUnloadModule") { _, _ ->
+            exitRequested = true
+            cpu.halted = true
+            info { "sceKernelSelfStopUnloadModule" }
+            0
+        }
+
         syscallTable.register(Nids.IO_REMOVE, "sceIoRemove") { _, _ -> 0 }
         syscallTable.register(Nids.IO_MKDIR, "sceIoMkdir") { _, _ -> 0 }
         syscallTable.register(Nids.IO_RMDIR, "sceIoRmdir") { _, _ -> 0 }
-        syscallTable.register(Nids.IO_IOCTL, "sceIoIoctl") { _, _ -> 0 }
+
+        val ioDevctlHandler = fun(kernel: Kernel, cpu: Cpu): Int {
+            val namePtr = Address(cpu.state.gpr(4).toUInt())
+            val cmd = cpu.state.gpr(5)
+            val inPtr = Address(cpu.state.gpr(6).toUInt())
+            val inLen = cpu.state.gpr(7)
+
+            val name = readStringFromMemory(kernel.memory, namePtr)
+            val inData = if (inPtr != Address.ZERO && inLen > 0) kernel.memory.readBytes(inPtr, inLen) else null
+
+            val sp = cpu.state.gpr(29).toUInt()
+            val outPtr = Address(cpu.memory.read32(Address(sp + 16u)).toUInt())
+            val outLen = cpu.memory.read32(Address(sp + 20u)).toUInt()
+            val outData = if (outPtr != Address.ZERO && outLen > 0u && outLen < 1024u && outPtr.value >= 0x08800000u && outPtr.value < 0x08A00000u)
+                ByteArray(outLen.toInt()) else null
+
+            val kemResult = kernel.kemulator.handleDevctl(name, cmd, inData, inLen, outData)
+            if (cmd == 2 && inData != null) {
+                val end = inData.indexOf(0).let { if (it < 0) inData.size else it }
+                if (end > 0) {
+                    kernel.kemulator.capture(inData.sliceArray(0 until end).decodeToString())
+                }
+            }
+            if (kemResult >= 0) {
+                if (outData != null && outPtr != Address.ZERO) {
+                    kernel.memory.writeBytes(outPtr, outData)
+                }
+                return kemResult
+            }
+
+            return kernel.fileIo.devctl(name, cmd, inData, inLen, outData)
+        }
+
+        syscallTable.register(Nids.IO_IOCTL, "sceIoIoctl", SyscallHandler(ioDevctlHandler))
+        syscallTable.register(Nids.IO_DEVCtl, "sceIoDevctl", SyscallHandler(ioDevctlHandler))
 
         syscallTable.register(Nids.CREATE_SEMA, "sceKernelCreateSema") { kernel, cpu ->
             val initCount = cpu.state.gpr(5)
