@@ -179,4 +179,64 @@ object Arithmetic {
         val rs = cpu.state.gpr(instructionRs(insn))
         cpu.state.setGpr(instructionRd(insn), rt shr (rs and 0x1F))
     }
+
+    fun executeSeb(cpu: Cpu, insn: Int) {
+        val rt = cpu.state.gpr(instructionRt(insn))
+        cpu.state.setGpr(instructionRd(insn), rt.toByte().toInt())
+    }
+
+    fun executeSeh(cpu: Cpu, insn: Int) {
+        val rt = cpu.state.gpr(instructionRt(insn))
+        cpu.state.setGpr(instructionRd(insn), rt.toShort().toInt())
+    }
+
+    fun executeWsbh(cpu: Cpu, insn: Int) {
+        val rt = cpu.state.gpr(instructionRt(insn))
+        val result = ((rt ushr 8) and 0x00FF00FF) or ((rt shl 8) and 0xFF00FF00.toInt())
+        cpu.state.setGpr(instructionRd(insn), result)
+    }
+
+    fun executeMin(cpu: Cpu, insn: Int) {
+        val rs = cpu.state.gpr(instructionRs(insn))
+        val rt = cpu.state.gpr(instructionRt(insn))
+        cpu.state.setGpr(instructionRd(insn), if (rs < rt) rs else rt)
+    }
+
+    fun executeMax(cpu: Cpu, insn: Int) {
+        val rs = cpu.state.gpr(instructionRs(insn))
+        val rt = cpu.state.gpr(instructionRt(insn))
+        cpu.state.setGpr(instructionRd(insn), if (rs > rt) rs else rt)
+    }
+
+    fun executeClz(cpu: Cpu, insn: Int) {
+        val rs = cpu.state.gpr(instructionRs(insn))
+        if (rs == 0) { cpu.state.setGpr(instructionRd(insn), 32); return }
+        cpu.state.setGpr(instructionRd(insn), rs.countLeadingZeroBits())
+    }
+
+    fun executeClo(cpu: Cpu, insn: Int) {
+        val rs = cpu.state.gpr(instructionRs(insn))
+        if (rs == -1) { cpu.state.setGpr(instructionRd(insn), 32); return }
+        cpu.state.setGpr(instructionRd(insn), rs.inv().countLeadingZeroBits())
+    }
+
+    fun executeExt(cpu: Cpu, insn: Int) {
+        val rs = cpu.state.gpr(instructionRs(insn))
+        val rt = instructionRt(insn)
+        val pos = instructionShamt(insn)
+        val size = (instructionRd(insn) and 0x1F) + 1
+        cpu.state.setGpr(rt, (rs ushr pos) and ((1 shl size) - 1))
+    }
+
+    fun executeIns(cpu: Cpu, insn: Int) {
+        val rs = cpu.state.gpr(instructionRs(insn))
+        val rt = instructionRt(insn)
+        val pos = instructionShamt(insn)
+        val msbd = instructionRd(insn) and 0x1F
+        val size = msbd - pos + 1
+        if (size <= 0) return
+        val mask = ((1 shl size) - 1) shl pos
+        val current = cpu.state.gpr(rt)
+        cpu.state.setGpr(rt, (current and mask.inv()) or ((rs shl pos) and mask))
+    }
 }

@@ -14,6 +14,14 @@ object ControlFlow {
         cpu.state.inDelaySlot = true
     }
 
+    private fun branchLikely(cpu: Cpu, condition: Boolean, insn: Int) {
+        if (condition) {
+            takeBranch(cpu, branchTarget(cpu, insn))
+        } else {
+            cpu.state.pc += Address(4u)
+        }
+    }
+
     fun executeBeq(cpu: Cpu, insn: Int) {
         val rs = cpu.state.gpr(instructionRs(insn))
         val rt = cpu.state.gpr(instructionRt(insn))
@@ -36,6 +44,28 @@ object ControlFlow {
         if (rs > 0) takeBranch(cpu, branchTarget(cpu, insn))
     }
 
+    fun executeBeql(cpu: Cpu, insn: Int) {
+        val rs = cpu.state.gpr(instructionRs(insn))
+        val rt = cpu.state.gpr(instructionRt(insn))
+        branchLikely(cpu, rs == rt, insn)
+    }
+
+    fun executeBnel(cpu: Cpu, insn: Int) {
+        val rs = cpu.state.gpr(instructionRs(insn))
+        val rt = cpu.state.gpr(instructionRt(insn))
+        branchLikely(cpu, rs != rt, insn)
+    }
+
+    fun executeBlezl(cpu: Cpu, insn: Int) {
+        val rs = cpu.state.gpr(instructionRs(insn))
+        branchLikely(cpu, rs <= 0, insn)
+    }
+
+    fun executeBgtzl(cpu: Cpu, insn: Int) {
+        val rs = cpu.state.gpr(instructionRs(insn))
+        branchLikely(cpu, rs > 0, insn)
+    }
+
     fun executeBltz(cpu: Cpu, insn: Int) {
         val rs = cpu.state.gpr(instructionRs(insn))
         if (rs < 0) takeBranch(cpu, branchTarget(cpu, insn))
@@ -44,6 +74,16 @@ object ControlFlow {
     fun executeBgez(cpu: Cpu, insn: Int) {
         val rs = cpu.state.gpr(instructionRs(insn))
         if (rs >= 0) takeBranch(cpu, branchTarget(cpu, insn))
+    }
+
+    fun executeBltzl(cpu: Cpu, insn: Int) {
+        val rs = cpu.state.gpr(instructionRs(insn))
+        branchLikely(cpu, rs < 0, insn)
+    }
+
+    fun executeBgezl(cpu: Cpu, insn: Int) {
+        val rs = cpu.state.gpr(instructionRs(insn))
+        branchLikely(cpu, rs >= 0, insn)
     }
 
     fun executeBltzal(cpu: Cpu, insn: Int) {
@@ -56,6 +96,18 @@ object ControlFlow {
         cpu.state.setGpr(31, (cpu.state.pc.value + 4u).toInt())
         val rs = cpu.state.gpr(instructionRs(insn))
         if (rs >= 0) takeBranch(cpu, branchTarget(cpu, insn))
+    }
+
+    fun executeBltzall(cpu: Cpu, insn: Int) {
+        cpu.state.setGpr(31, (cpu.state.pc.value + 4u).toInt())
+        val rs = cpu.state.gpr(instructionRs(insn))
+        branchLikely(cpu, rs < 0, insn)
+    }
+
+    fun executeBgezall(cpu: Cpu, insn: Int) {
+        cpu.state.setGpr(31, (cpu.state.pc.value + 4u).toInt())
+        val rs = cpu.state.gpr(instructionRs(insn))
+        branchLikely(cpu, rs >= 0, insn)
     }
 
     fun executeJ(cpu: Cpu, insn: Int) {
