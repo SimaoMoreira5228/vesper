@@ -40,7 +40,7 @@ class ControlFlowTest : StringSpec({
         OpcodeTable.dispatch(c, iType(Opcode.BEQ, 1, 2, 4))
 
         c.state.inDelaySlot shouldBe true
-        c.state.nextPc shouldBe Address(startPc.value + 16u)
+        c.state.nextPc shouldBe Address(startPc.value + 20u)
     }
 
     "BEQ falls through when not equal" {
@@ -61,7 +61,22 @@ class ControlFlowTest : StringSpec({
         OpcodeTable.dispatch(c, iType(Opcode.BNE, 1, 2, 4))
 
         c.state.inDelaySlot shouldBe true
-        c.state.nextPc shouldBe Address(startPc.value + 16u)
+        c.state.nextPc shouldBe Address(startPc.value + 20u)
+    }
+
+    "BEQL skips its delay slot when not taken" {
+        val c = cpu {
+            state.setGpr(1, 1)
+            state.setGpr(2, 2)
+        }
+        writeMem(c.memory as MemoryBus, 0x08800000u, iType(Opcode.BEQL, 1, 2, 4))
+        writeMem(c.memory as MemoryBus, 0x08800004u, iType(Opcode.ADDIU, 0, 3, 1))
+
+        c.step()
+
+        c.state.pc shouldBe Address(0x08800008u)
+        c.state.gpr(3) shouldBe 0
+        c.state.inDelaySlot shouldBe false
     }
 
     "BLEZ branches when <= 0" {
@@ -98,7 +113,7 @@ class ControlFlowTest : StringSpec({
         val c = cpu { state.setGpr(1, -1) }
         val startPc = c.state.pc
         OpcodeTable.dispatch(c, iType(Opcode.REGIMM, 1, 0x10, 4))
-        c.state.gpr(31) shouldBe (startPc.value + 4u).toInt()
+        c.state.gpr(31) shouldBe (startPc.value + 8u).toInt()
         c.state.inDelaySlot shouldBe true
     }
 
@@ -106,7 +121,7 @@ class ControlFlowTest : StringSpec({
         val c = cpu { state.setGpr(1, 0) }
         val startPc = c.state.pc
         OpcodeTable.dispatch(c, iType(Opcode.REGIMM, 1, 0x11, 4))
-        c.state.gpr(31) shouldBe (startPc.value + 4u).toInt()
+        c.state.gpr(31) shouldBe (startPc.value + 8u).toInt()
         c.state.inDelaySlot shouldBe true
     }
 
@@ -123,7 +138,7 @@ class ControlFlowTest : StringSpec({
         val c = cpu()
         val startPc = c.state.pc
         OpcodeTable.dispatch(c, jType(Opcode.JAL, 0x0220000))
-        c.state.gpr(31) shouldBe (startPc.value + 4u).toInt()
+        c.state.gpr(31) shouldBe (startPc.value + 8u).toInt()
         c.state.inDelaySlot shouldBe true
     }
 
@@ -138,7 +153,7 @@ class ControlFlowTest : StringSpec({
         val c = cpu { state.setGpr(1, 0x08801000) }
         val startPc = c.state.pc
         OpcodeTable.dispatch(c, rType(1, 0, 31, Funct.JALR))
-        c.state.gpr(31) shouldBe (startPc.value + 4u).toInt()
+        c.state.gpr(31) shouldBe (startPc.value + 8u).toInt()
         c.state.inDelaySlot shouldBe true
         c.state.nextPc shouldBe Address(0x08801000u)
     }
@@ -148,15 +163,17 @@ class ControlFlowTest : StringSpec({
             state.setGpr(1, 1)
             state.setGpr(2, 1)
         }
+        writeMem(c.memory as MemoryBus, 0x08800000u, iType(Opcode.BEQ, 1, 2, 8))
         writeMem(c.memory as MemoryBus, 0x08800004u, 0)
 
         c.state.pc = Address(0x08800000u)
-        OpcodeTable.dispatch(c, iType(Opcode.BEQ, 1, 2, 8))
+        c.step()
+        c.state.pc shouldBe Address(0x08800004u)
         c.state.inDelaySlot shouldBe true
-        c.state.nextPc shouldBe Address(0x08800020u)
+        c.state.nextPc shouldBe Address(0x08800024u)
 
         c.step()
-        c.state.pc shouldBe Address(0x08800020u)
+        c.state.pc shouldBe Address(0x08800024u)
         c.state.inDelaySlot shouldBe false
     }
 
@@ -166,10 +183,13 @@ class ControlFlowTest : StringSpec({
             state.setGpr(2, 1)
         }
         c.state.pc = Address(0x08800000u)
-        OpcodeTable.dispatch(c, iType(Opcode.BEQ, 1, 2, 8))
-        c.state.inDelaySlot shouldBe true
+        writeMem(c.memory as MemoryBus, 0x08800000u, iType(Opcode.BEQ, 1, 2, 8))
+        writeMem(c.memory as MemoryBus, 0x08800004u, 0)
 
         c.step()
-        c.state.pc shouldBe Address(0x08800020u)
+        c.state.pc shouldBe Address(0x08800004u)
+        c.state.inDelaySlot shouldBe true
+        c.step()
+        c.state.pc shouldBe Address(0x08800024u)
     }
 })

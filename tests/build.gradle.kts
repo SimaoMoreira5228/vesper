@@ -60,6 +60,7 @@ tasks.register<JavaExec>("runPspAutotest") {
         prx.orNull?.let { add(rootProject.file(it).absolutePath) }
         expected.orNull?.let { add(rootProject.file(it).absolutePath) }
         trace.orNull?.let { add(it) }
+        if (trace.orNull == null && maxInstructions.orNull != null) add("0")
         maxInstructions.orNull?.let { add(it) }
     }
 }

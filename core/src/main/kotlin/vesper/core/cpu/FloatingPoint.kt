@@ -99,10 +99,10 @@ object FloatingPoint {
         val likely = (branchType and 2) != 0
         val take = if ((branchType and 1) != 0) condition else !condition
         if (take) {
-            cpu.state.nextPc = cpu.state.pc + (instructionImmediateSigned(insn) shl 2)
+            cpu.state.nextPc = cpu.state.pc + Address((4 + (instructionImmediateSigned(insn) shl 2)).toUInt())
             cpu.state.inDelaySlot = true
         } else if (likely) {
-            cpu.state.pc += Address(4u)
+            cpu.state.pc += Address(8u)
         }
     }
 

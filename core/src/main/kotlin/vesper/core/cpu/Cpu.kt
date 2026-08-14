@@ -75,7 +75,10 @@ class Cpu(
             return
         }
 
-        lastInsnPc = state.pc
+        val instructionPc = state.pc
+        val pendingBranchTarget = if (state.inDelaySlot) state.nextPc else null
+        state.inDelaySlot = false
+        lastInsnPc = instructionPc
         val insn = memory.read32(state.pc)
 
         if (state.pc.value < 0x04000000u && state.pc.value >= 0x1000u && traceStepCount > 10) {
@@ -93,15 +96,18 @@ class Cpu(
         crashTrace.add(traceLine)
         if (crashTrace.size > crashTraceSize) crashTrace.removeAt(0)
 
-        state.pc = if (state.inDelaySlot) state.nextPc else state.pc + Address(4u)
-        state.inDelaySlot = false
-
         OpcodeTable.dispatch(this, insn)
 
         val exception = state.exceptionPending
         if (exception != null) {
             state.exceptionPending = null
             handleException(exception)
+        }
+
+        when {
+            state.inDelaySlot -> state.pc = instructionPc + Address(4u)
+            pendingBranchTarget != null -> state.pc = pendingBranchTarget
+            state.pc == instructionPc -> state.pc = instructionPc + Address(4u)
         }
     }
 

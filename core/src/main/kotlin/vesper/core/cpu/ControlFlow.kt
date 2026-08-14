@@ -6,7 +6,7 @@ object ControlFlow {
 
     private fun branchTarget(cpu: Cpu, insn: Int): Address {
         val offset = instructionImmediateSigned(insn) shl 2
-        return cpu.state.pc + offset
+        return cpu.state.pc + Address((4 + offset).toUInt())
     }
 
     private fun takeBranch(cpu: Cpu, target: Address) {
@@ -18,7 +18,7 @@ object ControlFlow {
         if (condition) {
             takeBranch(cpu, branchTarget(cpu, insn))
         } else {
-            cpu.state.pc += Address(4u)
+            cpu.state.pc += Address(8u)
         }
     }
 
@@ -87,25 +87,25 @@ object ControlFlow {
     }
 
     fun executeBltzal(cpu: Cpu, insn: Int) {
-        cpu.state.setGpr(31, (cpu.state.pc.value + 4u).toInt())
+        cpu.state.setGpr(31, (cpu.state.pc.value + 8u).toInt())
         val rs = cpu.state.gpr(instructionRs(insn))
         if (rs < 0) takeBranch(cpu, branchTarget(cpu, insn))
     }
 
     fun executeBgezal(cpu: Cpu, insn: Int) {
-        cpu.state.setGpr(31, (cpu.state.pc.value + 4u).toInt())
+        cpu.state.setGpr(31, (cpu.state.pc.value + 8u).toInt())
         val rs = cpu.state.gpr(instructionRs(insn))
         if (rs >= 0) takeBranch(cpu, branchTarget(cpu, insn))
     }
 
     fun executeBltzall(cpu: Cpu, insn: Int) {
-        cpu.state.setGpr(31, (cpu.state.pc.value + 4u).toInt())
+        cpu.state.setGpr(31, (cpu.state.pc.value + 8u).toInt())
         val rs = cpu.state.gpr(instructionRs(insn))
         branchLikely(cpu, rs < 0, insn)
     }
 
     fun executeBgezall(cpu: Cpu, insn: Int) {
-        cpu.state.setGpr(31, (cpu.state.pc.value + 4u).toInt())
+        cpu.state.setGpr(31, (cpu.state.pc.value + 8u).toInt())
         val rs = cpu.state.gpr(instructionRs(insn))
         branchLikely(cpu, rs >= 0, insn)
     }
@@ -117,7 +117,7 @@ object ControlFlow {
     }
 
     fun executeJal(cpu: Cpu, insn: Int) {
-        cpu.state.setGpr(31, (cpu.state.pc.value + 4u).toInt())
+        cpu.state.setGpr(31, (cpu.state.pc.value + 8u).toInt())
         val target = instructionTarget(insn)
         val newPc = (cpu.state.pc.value and 0xF0000000u) or (target.toUInt() shl 2)
         takeBranch(cpu, Address(newPc))
@@ -131,7 +131,7 @@ object ControlFlow {
     fun executeJalr(cpu: Cpu, insn: Int) {
         val rd = instructionRd(insn)
         val rs = cpu.state.gpr(instructionRs(insn))
-        cpu.state.setGpr(rd, (cpu.state.pc.value + 4u).toInt())
+        cpu.state.setGpr(rd, (cpu.state.pc.value + 8u).toInt())
         takeBranch(cpu, Address(rs.toUInt()))
     }
 }
