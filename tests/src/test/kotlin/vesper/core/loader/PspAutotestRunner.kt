@@ -8,6 +8,9 @@ class PspAutotestRunner(
     val traceFirst: Int = 0,
     val traceInstructions: Boolean = false,
     val maxInstructions: Int = 100_000_000,
+    val outputCheckpoint: Int? = null,
+    val instructionsAfterCheckpoint: Int = 0,
+    val tracePcRange: UIntRange? = null,
 ) {
     var stepsExecuted: Int = 0
         private set
@@ -20,7 +23,7 @@ class PspAutotestRunner(
     var outputStats: String = "n/a"
         private set
 
-    enum class StopReason { NOT_STARTED, KERNEL_EXIT, CPU_HALTED, INSTRUCTION_LIMIT }
+    enum class StopReason { NOT_STARTED, KERNEL_EXIT, CPU_HALTED, INSTRUCTION_LIMIT, OUTPUT_CHECKPOINT }
 
     fun run(prxBytes: ByteArray): String {
         val memory = MemoryBus()
@@ -34,12 +37,14 @@ class PspAutotestRunner(
             vesper.common.LogSinks.add(StdoutLogSink())
             kernel.syscallTable.trace = true
             cpu.traceInstructions = traceInstructions
+            cpu.tracePcRange = tracePcRange
         }
 
         val result = ModuleLoader().loadAndResolve(prxBytes, memory, kernel)
         require(result.isSuccess) { "Failed to load PRX: ${result.exceptionOrNull()}" }
 
         var steps = 0
+        var checkpointStop = Int.MAX_VALUE
         while (!cpu.halted && steps < maxInstructions) {
             if (steps == traceFirst && traceFirst > 0) {
                 kernel.syscallTable.trace = false
@@ -47,17 +52,27 @@ class PspAutotestRunner(
             }
             cpu.step()
             steps++
+            if (checkpointStop == Int.MAX_VALUE && outputCheckpoint != null &&
+                kernel.kemulator.outputCount() >= outputCheckpoint
+            ) {
+                checkpointStop = steps + instructionsAfterCheckpoint
+            }
+            if (steps >= checkpointStop) break
         }
 
         stepsExecuted = steps
         finalPc = cpu.pc.toString()
-        recentTrace = cpu.lastTrace.takeLast(3)
+        recentTrace = cpu.lastTrace
         outputStats = kernel.kemulator.outputStats()
         if (steps >= maxInstructions) {
             stopReason = StopReason.INSTRUCTION_LIMIT
             throw AssertionError("Reached max instructions ($maxInstructions) at PC ${cpu.pc}; recent=${recentTrace.joinToString(" | ")}")
         }
-        stopReason = if (kernel.isExitRequested()) StopReason.KERNEL_EXIT else StopReason.CPU_HALTED
+        stopReason = when {
+            steps >= checkpointStop -> StopReason.OUTPUT_CHECKPOINT
+            kernel.isExitRequested() -> StopReason.KERNEL_EXIT
+            else -> StopReason.CPU_HALTED
+        }
         return kernel.kemulator.output
     }
 }

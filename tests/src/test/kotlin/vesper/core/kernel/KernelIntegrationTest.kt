@@ -99,6 +99,30 @@ class KernelIntegrationTest : StringSpec({
         kernel.syscallTable.dispatch(Nids.THREAD_START, kernel, cpu)
     }
 
+    "thread start in an import delay slot keeps the new thread entry point" {
+        val mem = MemoryBus()
+        val cpu = Cpu(mem)
+        val kernel = Kernel(mem, cpu)
+        kernel.init()
+        cpu.kernel = kernel
+
+        val entry = Address(0x08801000u)
+        val threadId = kernel.scheduler.createThread("worker", entry, 0x10, 0x1000)
+        val stub = Address(0x08800000u)
+        mem.write32(stub, 0x03E00008)
+        mem.write32(stub + 4, 0x0000000C)
+        kernel.registerImport(stub + 4, Nids.THREAD_START)
+        cpu.state.pc = stub
+        cpu.state.setGpr(4, threadId)
+        cpu.state.setGpr(31, 0x00001000)
+
+        cpu.step()
+        cpu.step()
+
+        cpu.state.pc shouldBe entry
+        kernel.scheduler.currentThreadId shouldBe threadId
+    }
+
     "display framebuffer address is tracked" {
         val kernel = makeKernel()
         kernel.geState.framebufferAddr = Address(0x04000000u)

@@ -56,6 +56,14 @@ tasks.register<JavaExec>("runPspAutotest") {
     val expected = providers.gradleProperty("expected")
     val trace = providers.gradleProperty("trace")
     val maxInstructions = providers.gradleProperty("maxInstructions")
+    val outputCheckpoint = providers.gradleProperty("outputCheckpoint")
+    val instructionsAfterCheckpoint = providers.gradleProperty("instructionsAfterCheckpoint")
+    val tracePcStart = providers.gradleProperty("tracePcStart")
+    val tracePcEnd = providers.gradleProperty("tracePcEnd")
+    outputCheckpoint.orNull?.let { systemProperty("vesper.outputCheckpoint", it) }
+    instructionsAfterCheckpoint.orNull?.let { systemProperty("vesper.instructionsAfterCheckpoint", it) }
+    tracePcStart.orNull?.let { systemProperty("vesper.tracePcStart", it) }
+    tracePcEnd.orNull?.let { systemProperty("vesper.tracePcEnd", it) }
     args = buildList {
         prx.orNull?.let { add(rootProject.file(it).absolutePath) }
         expected.orNull?.let { add(rootProject.file(it).absolutePath) }

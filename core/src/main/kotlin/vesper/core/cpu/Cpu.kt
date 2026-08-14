@@ -25,6 +25,7 @@ class Cpu(
 
     private var lastInsnPc: Address = Address.ZERO
     var traceInstructions: Boolean = false
+    var tracePcRange: UIntRange? = null
     var traceStepCount: Int = 0
         private set
 
@@ -88,7 +89,7 @@ class Cpu(
         }
 
         traceStepCount++
-        if (traceInstructions) {
+        if (traceInstructions && (tracePcRange == null || instructionPc.value in tracePcRange!!)) {
             trace { formatInstructionTrace(instructionPc.value, insn, state) }
         }
         crashTrace.record(instructionPc.value, insn, state)
@@ -101,7 +102,12 @@ class Cpu(
             handleException(exception)
         }
 
+        // A syscall may reschedule and restore a different thread state while
+        // this instruction is still being retired. Its PC must not receive the
+        // previous thread's delay-slot target or sequential increment.
+        val contextSwitched = state.pc != instructionPc
         when {
+            contextSwitched -> Unit
             state.inDelaySlot -> state.pc = instructionPc + Address(4u)
             pendingBranchTarget != null -> state.pc = pendingBranchTarget
             state.pc == instructionPc -> state.pc = instructionPc + Address(4u)

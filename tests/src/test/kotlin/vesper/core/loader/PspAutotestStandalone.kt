@@ -9,10 +9,17 @@ fun main(args: Array<String>) {
     val numericArgs = args.drop(1).mapNotNull { it.toIntOrNull() }
     val trace = numericArgs.getOrNull(0) ?: 0
     val maxInstructions = numericArgs.getOrNull(1) ?: 100_000_000
+    val outputCheckpoint = System.getProperty("vesper.outputCheckpoint")?.toIntOrNull()
+    val instructionsAfterCheckpoint = System.getProperty("vesper.instructionsAfterCheckpoint")?.toIntOrNull() ?: 0
+    val tracePcStart = System.getProperty("vesper.tracePcStart")?.removePrefix("0x")?.toUIntOrNull(16)
+    val tracePcEnd = System.getProperty("vesper.tracePcEnd")?.removePrefix("0x")?.toUIntOrNull(16)
     val runner = PspAutotestRunner(
         traceFirst = trace,
         traceInstructions = trace > 0,
         maxInstructions = maxInstructions,
+        outputCheckpoint = outputCheckpoint,
+        instructionsAfterCheckpoint = instructionsAfterCheckpoint,
+        tracePcRange = if (tracePcStart != null && tracePcEnd != null) tracePcStart..tracePcEnd else null,
     )
     val output = runner.run(prxBytes)
     println("=== Output (${output.length} chars) ===")
