@@ -72,8 +72,13 @@ class Cpu(
 
     override fun step() {
         if (halted) return
-        if (kernel?.isExitRequested() == true) {
+        val k = kernel
+        if (k?.isExitRequested() == true) {
             halted = true
+            return
+        }
+        if (k != null && !k.hasRunnableThread()) {
+            k.advanceIdle()
             return
         }
 
@@ -99,12 +104,10 @@ class Cpu(
         val exception = state.exceptionPending
         if (exception != null) {
             state.exceptionPending = null
-            handleException(exception)
+            handleException(exception, pendingBranchTarget)
+            return
         }
 
-        // A syscall may reschedule and restore a different thread state while
-        // this instruction is still being retired. Its PC must not receive the
-        // previous thread's delay-slot target or sequential increment.
         val contextSwitched = state.pc != instructionPc
         when {
             contextSwitched -> Unit
@@ -120,15 +123,16 @@ class Cpu(
 
     fun getLastInsnAddress(): Address = lastInsnPc
 
-    private fun handleException(exception: CpuException) {
+    private fun handleException(exception: CpuException, pendingBranchTarget: Address?) {
         when (exception) {
             is CpuException.Syscall -> {
+                state.pc = pendingBranchTarget ?: (lastInsnPc + Address(4u))
                 val importNid = kernel?.resolveImport(lastInsnPc)
                 val nid = importNid ?: state.gpr(2)
-                val result = kernel?.handleSyscall(nid, this) ?: 0
-                state.setGpr(2, result)
+                kernel?.handleSyscall(nid, this)
             }
             is CpuException.Breakpoint -> {
+                state.pc = pendingBranchTarget ?: (lastInsnPc + Address(4u))
             }
             is CpuException.ReservedInstruction -> {
                 recordCrashTrace()

@@ -5,6 +5,10 @@ object Nids {
     val THREAD_START: Int = 0xF475845D.toInt()
     val THREAD_EXIT: Int = 0x2E29D4B1
     val THREAD_DELETE: Int = 0x446D85DE
+    val THREAD_WAIT_END: Int = 0x278C0DF5
+    val THREAD_WAIT_END_CB: Int = 0x840E8133.toInt()
+    val THREAD_TERMINATE: Int = 0x616403BA
+    val THREAD_EXIT_DELETE: Int = 0x809CE29B.toInt()
     val THREAD_SLEEP: Int = 0x9ACE131E.toInt()
     val THREAD_SLEEP_CB: Int = 0x82826F70.toInt()
     val THREAD_WAKEUP: Int = 0x1B6C0B6C

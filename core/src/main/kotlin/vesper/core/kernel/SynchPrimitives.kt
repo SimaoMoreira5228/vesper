@@ -8,7 +8,7 @@ data class KSemaphore(
     val id: Int,
     var count: Int,
     val maxCount: Int,
-    val waitingThreads: MutableList<Int> = mutableListOf(),
+    val waitingThreads: MutableList<Pair<Int, Int>> = mutableListOf(),
 )
 
 data class KMutex(
@@ -50,24 +50,23 @@ class SynchPrimitives(
 
     fun deleteSemaphore(semaId: Int): Int {
         val sema = semaphores.remove(semaId) ?: return -1
-        for (tid in sema.waitingThreads) {
-            val thread = scheduler.getThread(tid)
-            if (thread != null) {
-                thread.status = ThreadStatus.Ready
-            }
+        for ((tid, _) in sema.waitingThreads) {
+            scheduler.makeReady(tid)
         }
+        scheduler.reschedule()
         return 0
     }
 
     fun signalSemaphore(semaId: Int, signal: Int): Int {
         val sema = semaphores[semaId] ?: return -1
         sema.count = min(sema.count + signal, sema.maxCount)
-        while (sema.count > 0 && sema.waitingThreads.isNotEmpty()) {
-            val tid = sema.waitingThreads.removeFirst()
-            val thread = scheduler.getThread(tid)
-            if (thread != null) {
-                sema.count--
-                thread.status = ThreadStatus.Ready
+        val waiters = sema.waitingThreads.iterator()
+        while (waiters.hasNext()) {
+            val (tid, need) = waiters.next()
+            if (sema.count >= need) {
+                sema.count -= need
+                scheduler.makeReady(tid)
+                waiters.remove()
             }
         }
         scheduler.reschedule()
@@ -80,11 +79,8 @@ class SynchPrimitives(
             sema.count -= need
             return 0
         }
-        sema.waitingThreads.add(scheduler.currentThreadId)
-        val thread = scheduler.getThread(scheduler.currentThreadId)
-        if (thread != null) {
-            thread.status = ThreadStatus.Waiting("sema")
-        }
+        sema.waitingThreads.add(scheduler.currentThreadId to need)
+        scheduler.getThread(scheduler.currentThreadId)?.status = ThreadStatus.Waiting("sema")
         scheduler.reschedule()
         return 0
     }
@@ -131,8 +127,7 @@ class SynchPrimitives(
                 val next = mutex.waitingThreads.removeFirst()
                 mutex.lockedBy = next
                 mutex.lockCount = 1
-                val thread = scheduler.getThread(next)
-                if (thread != null) thread.status = ThreadStatus.Ready
+                scheduler.makeReady(next)
                 scheduler.reschedule()
             }
         }
@@ -151,8 +146,7 @@ class SynchPrimitives(
         val toRemove = mutableListOf<Pair<Int, Int>>()
         for ((tid, pattern) in flag.waitingThreads) {
             if (flag.bits and pattern == pattern) {
-                val thread = scheduler.getThread(tid)
-                if (thread != null) thread.status = ThreadStatus.Ready
+                scheduler.makeReady(tid)
                 toRemove.add(Pair(tid, pattern))
             }
         }
@@ -183,8 +177,7 @@ class SynchPrimitives(
     fun deleteEventFlag(flagId: Int): Int {
         val flag = eventFlags.remove(flagId) ?: return -1
         for ((tid, _) in flag.waitingThreads) {
-            val thread = scheduler.getThread(tid)
-            if (thread != null) thread.status = ThreadStatus.Ready
+            scheduler.makeReady(tid)
         }
         return 0
     }

@@ -25,4 +25,6 @@ interface IKernel {
     fun isExitRequested(): Boolean
     fun checkCallbacks(): Boolean
     fun resolveImport(pc: Address): Int?
+    fun hasRunnableThread(): Boolean
+    fun advanceIdle()
 }

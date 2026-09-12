@@ -28,6 +28,7 @@ class Kernel(
 
     private var exitRequested: Boolean = false
     val importMap = mutableMapOf<Address, Int>()
+    val bootThreadExit: Address = Address(Scheduler.THREAD_EXIT_TRAMPOLINE)
 
     fun registerImport(stubAddr: Address, nid: Int) {
         importMap[stubAddr] = nid
@@ -36,14 +37,39 @@ class Kernel(
     override fun resolveImport(pc: Address): Int? = importMap[pc]
 
     fun init() {
+        writeExitTrampoline()
         syscallTable.registerAllKpspemuStubs()
         registerAllSyscalls()
         info { "Kernel initialized" }
         timer.reset()
     }
 
+    private fun writeExitTrampoline() {
+        val addr = Address(Scheduler.THREAD_EXIT_TRAMPOLINE)
+        val nid = Nids.THREAD_EXIT
+        memory.write32(addr, 0x3C020000 or (nid ushr 16))
+        memory.write32(addr + 4, 0x34420000 or (nid and 0xFFFF))
+        memory.write32(addr + 8, 0x24040000)
+        memory.write32(addr + 12, 0x0000000C)
+        memory.write32(addr + 16, 0x00000000)
+    }
+
     override fun handleSyscall(id: Int, cpu: ICpu): Int {
-        return syscallTable.dispatch(id, this, cpu as Cpu)
+        val caller = scheduler.currentThread()
+        val result = syscallTable.dispatch(id, this, cpu as Cpu)
+        if (scheduler.currentThreadId == caller?.id) {
+            cpu.state.setGpr(2, result)
+        } else {
+            caller?.savedState?.setGpr(2, result)
+        }
+        return result
+    }
+
+    override fun hasRunnableThread(): Boolean = scheduler.hasRunnableThread()
+
+    override fun advanceIdle() {
+        timer.advance(1000)
+        scheduler.tick()
     }
 
     fun dispatchSyscallFromCpu(nid: Int, cpu: Cpu): Int {
@@ -101,6 +127,27 @@ class Kernel(
         syscallTable.register(Nids.THREAD_DELETE, "sceKernelDeleteThread") { kernel, cpu ->
             val threadId = cpu.state.gpr(4)
             kernel.scheduler.deleteThread(threadId)
+        }
+
+        syscallTable.register(Nids.THREAD_WAIT_END, "sceKernelWaitThreadEnd") { kernel, cpu ->
+            kernel.scheduler.waitThreadEnd(cpu.state.gpr(4))
+        }
+
+        syscallTable.register(Nids.THREAD_WAIT_END_CB, "sceKernelWaitThreadEndCB") { kernel, cpu ->
+            val result = kernel.scheduler.waitThreadEnd(cpu.state.gpr(4))
+            kernel.checkCallbacks()
+            result
+        }
+
+        syscallTable.register(Nids.THREAD_TERMINATE, "sceKernelTerminateThread") { kernel, cpu ->
+            kernel.scheduler.terminateThread(cpu.state.gpr(4))
+        }
+
+        syscallTable.register(Nids.THREAD_EXIT_DELETE, "sceKernelExitDeleteThread") { kernel, cpu ->
+            val threadId = kernel.scheduler.currentThreadId
+            kernel.scheduler.exitThread(cpu.state.gpr(4))
+            kernel.scheduler.deleteThread(threadId)
+            0
         }
 
         syscallTable.register(Nids.THREAD_SLEEP, "sceKernelSleepThread") { kernel, _ ->
@@ -362,8 +409,8 @@ class Kernel(
         syscallTable.register(Nids.IO_DEVCtl, "sceIoDevctl", SyscallHandler(ioDevctlHandler))
 
         syscallTable.register(Nids.CREATE_SEMA, "sceKernelCreateSema") { kernel, cpu ->
-            val initCount = cpu.state.gpr(5)
-            val maxCount = cpu.state.gpr(6)
+            val initCount = cpu.state.gpr(6)
+            val maxCount = cpu.state.gpr(7)
             kernel.synchPrimitives.createSemaphore(initCount, maxCount)
         }
 

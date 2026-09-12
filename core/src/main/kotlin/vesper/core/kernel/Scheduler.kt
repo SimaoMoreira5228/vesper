@@ -1,12 +1,10 @@
 package vesper.core.kernel
 
 import vesper.common.Loggable
-import vesper.common.warn
 import vesper.core.IMemoryBus
 import vesper.core.cpu.Cpu
 import vesper.core.cpu.CpuState
 import vesper.core.memory.Address
-import kotlin.math.min
 
 sealed interface ThreadStatus {
     data object Dormant : ThreadStatus
@@ -53,32 +51,33 @@ class Scheduler(
     private val threads = mutableMapOf<Int, KThread>()
     private val callbacks = mutableMapOf<Int, KCallback>()
 
-    private val readyQueue = mutableListOf<Int>()
-    private val waitingThreads = mutableListOf<Pair<Long, Int>>()
-    private var nextStackTop = 0x09F00000
+    private val readyQueue = ArrayDeque<Int>()
+    private val sleeping = mutableListOf<TimerEvent>()
+    private var nextStackTop: Int = MAIN_STACK_TOP - STACK_GAP
 
-    private var idleThreadId: Int = createIdleThread()
+    init {
+        createMainThread()
+    }
 
-    private fun createIdleThread(): Int {
+    private fun createMainThread(): Int {
         val id = nextThreadId++
+        val saved = CpuState()
+        saved.reset(Address.ZERO)
         threads[id] = KThread(
             id = id,
-            name = "idle",
-            priority = 0xFF,
-            status = ThreadStatus.Ready,
+            name = "main",
+            priority = MAIN_PRIORITY,
+            status = ThreadStatus.Running,
             entryPoint = Address.ZERO,
-            savedState = CpuState(),
-            stackBase = 0,
-            stackSize = 0x1000,
+            savedState = saved,
+            stackBase = MAIN_STACK_TOP,
+            stackSize = STACK_GAP,
             attr = 0,
             exitStatus = 0,
         )
-        readyQueue.add(id)
         currentThreadId = id
         return id
     }
-
-    private fun allocateThreadId(): Int = nextThreadId++
 
     fun createThread(
         name: String,
@@ -87,15 +86,16 @@ class Scheduler(
         stackSize: Int,
         attr: Int = 0,
     ): Int {
-        val id = allocateThreadId()
+        val id = nextThreadId++
 
         val saved = CpuState()
-        saved.pc = entryPoint
+        saved.reset(entryPoint)
+        saved.setGpr(31, THREAD_EXIT_TRAMPOLINE.toInt())
         val stackTop = nextStackTop
         nextStackTop -= (stackSize + 0xFFF) and 0xFFFFF000.toInt()
         saved.setGpr(29, stackTop - 16)
 
-        val thread = KThread(
+        threads[id] = KThread(
             id = id,
             name = name,
             priority = priority,
@@ -107,7 +107,6 @@ class Scheduler(
             attr = attr,
             exitStatus = 0,
         )
-        threads[id] = thread
         return id
     }
 
@@ -118,8 +117,7 @@ class Scheduler(
         thread.savedState.setGpr(4, userDataLength)
         thread.savedState.setGpr(5, userDataPtr)
         thread.savedState.setGpr(28, gp)
-        thread.status = ThreadStatus.Ready
-        readyQueue.add(threadId)
+        makeReady(threadId)
         reschedule()
         return 0
     }
@@ -128,19 +126,44 @@ class Scheduler(
         val thread = threads[currentThreadId] ?: return -1
         thread.status = ThreadStatus.Dormant
         thread.exitStatus = status
+        wakeWaiters(thread)
         reschedule()
         return status
     }
 
+    fun terminateThread(threadId: Int): Int {
+        val thread = threads[threadId] ?: return -1
+        if (thread.status == ThreadStatus.Dormant) return -1
+        thread.status = ThreadStatus.Dormant
+        wakeWaiters(thread)
+        if (threadId == currentThreadId) reschedule()
+        return 0
+    }
+
     fun deleteThread(threadId: Int): Int {
-        val thread = threads.remove(threadId) ?: return -1
+        val thread = threads[threadId] ?: return -1
+        wakeWaiters(thread)
+        threads.remove(threadId)
         readyQueue.remove(threadId)
+        sleeping.removeAll { it.threadId == threadId }
+        if (threadId == currentThreadId) {
+            currentThreadId = -1
+            reschedule()
+        }
+        return 0
+    }
+
+    fun waitThreadEnd(threadId: Int): Int {
+        val thread = threads[threadId] ?: return -1
+        if (thread.status == ThreadStatus.Dormant) return 0
+        thread.waitQueue.add(currentThreadId)
+        threads[currentThreadId]?.status = ThreadStatus.Waiting("threadEnd")
+        reschedule()
         return 0
     }
 
     fun sleepThread(): Int {
-        val thread = threads[currentThreadId] ?: return -1
-        thread.status = ThreadStatus.Waiting("sleep")
+        threads[currentThreadId]?.status = ThreadStatus.Waiting("sleep")
         reschedule()
         return 0
     }
@@ -148,8 +171,8 @@ class Scheduler(
     fun wakeupThread(threadId: Int): Int {
         val thread = threads[threadId] ?: return -1
         if (thread.status is ThreadStatus.Waiting) {
-            thread.status = ThreadStatus.Ready
-            readyQueue.add(threadId)
+            makeReady(threadId)
+            reschedule()
             return 0
         }
         return -1
@@ -158,17 +181,39 @@ class Scheduler(
     fun delayCurrentThread(micros: Long): Int {
         val thread = threads[currentThreadId] ?: return -1
         thread.status = ThreadStatus.Waiting("delay")
-        val wakeupTick = timer.nowMicros() + micros
-        waitingThreads.add(Pair(wakeupTick, thread.id))
-        waitingThreads.sortBy { it.first }
+        sleeping.add(TimerEvent(timer.nowMicros() + micros, thread.id))
+        sleeping.sortBy { it.wakeupTick }
         reschedule()
         return 0
     }
 
-    fun yield(): Int {
-        reschedule()
-        return 0
+    fun makeReady(threadId: Int) {
+        val thread = threads[threadId] ?: return
+        if (thread.status == ThreadStatus.Running) return
+        thread.status = ThreadStatus.Ready
+        if (thread.id !in readyQueue) readyQueue.add(thread.id)
     }
+
+    fun reschedule() {
+        processTimers()
+        val current = threads[currentThreadId]
+        if (current != null) {
+            saveState(current)
+            if (current.status == ThreadStatus.Running) {
+                current.status = ThreadStatus.Ready
+                if (current.id !in readyQueue) readyQueue.add(current.id)
+            }
+        }
+        dispatchNext()
+    }
+
+    fun tick() {
+        processTimers()
+        dispatchNext()
+    }
+
+    fun hasRunnableThread(): Boolean =
+        threads[currentThreadId]?.status == ThreadStatus.Running || readyQueue.isNotEmpty()
 
     fun changePriority(threadId: Int, newPriority: Int): Int {
         val thread = threads[threadId] ?: return -1
@@ -182,6 +227,37 @@ class Scheduler(
         memory.write32(statusPtr + 4, thread.priority)
     }
 
+    private fun dispatchNext() {
+        if (readyQueue.isEmpty()) return
+        readyQueue.sortBy { threads[it]?.priority ?: 0xFF }
+        val nextId = readyQueue.removeFirst()
+        val next = threads[nextId] ?: return
+        val previous = currentThreadId
+        next.status = ThreadStatus.Running
+        currentThreadId = nextId
+        if (nextId != previous) restoreState(next)
+    }
+
+    private fun processTimers() {
+        val now = timer.nowMicros()
+        while (sleeping.isNotEmpty() && sleeping.first().wakeupTick <= now) {
+            makeReady(sleeping.removeFirst().threadId)
+        }
+    }
+
+    private fun wakeWaiters(thread: KThread) {
+        for (waiterId in thread.waitQueue) makeReady(waiterId)
+        thread.waitQueue.clear()
+    }
+
+    private fun saveState(thread: KThread) {
+        thread.savedState.copyFrom(cpu.state)
+    }
+
+    private fun restoreState(thread: KThread) {
+        cpu.state.copyFrom(thread.savedState)
+    }
+
     fun createCallback(namePtr: Int, funcPtr: Int, arg: Int): Int {
         val id = nextCallbackId++
         callbacks[id] = KCallback(id = id, funcPtr = funcPtr, arg = arg)
@@ -189,80 +265,27 @@ class Scheduler(
     }
 
     fun checkCallbacks(): Boolean {
-        processTimers()
-        if (currentThreadId < 0) return false
         val thread = threads[currentThreadId] ?: return false
         var called = false
         for (cb in callbacks.values) {
             if (cb.active) {
-                val savedPc = cpu.state.pc
-                cpu.state.pc = Address(cb.funcPtr.toUInt())
+                thread.savedState.pc = Address(cb.funcPtr.toUInt())
                 called = true
             }
         }
         return called
     }
 
-    fun reschedule() {
-        processTimers()
-        val current = threads[currentThreadId]
-
-        if (current != null && current.status == ThreadStatus.Running) {
-            current.status = ThreadStatus.Ready
-            if (current.id != idleThreadId) {
-                saveState(current)
-                readyQueue.add(current.id)
-            }
-        }
-
-        if (readyQueue.isEmpty()) {
-            if (current != null) {
-                current.status = ThreadStatus.Running
-            }
-            return
-        }
-
-        readyQueue.sortBy { threads[it]?.priority ?: 0xFF }
-        val nextId = readyQueue.removeFirst()
-        val next = threads[nextId] ?: return
-
-        next.status = ThreadStatus.Running
-        currentThreadId = nextId
-        if (next.id != idleThreadId) restoreState(next)
-    }
-
-    private fun saveState(thread: KThread) {
-        thread.savedState.pc = cpu.state.pc
-        thread.savedState.nextPc = cpu.state.nextPc
-        thread.savedState.inDelaySlot = cpu.state.inDelaySlot
-        cpu.state.gpr.copyInto(thread.savedState.gpr)
-        thread.savedState.hi = cpu.state.hi
-        thread.savedState.lo = cpu.state.lo
-    }
-
-    private fun restoreState(thread: KThread) {
-        cpu.state.pc = thread.savedState.pc
-        cpu.state.nextPc = thread.savedState.nextPc
-        cpu.state.inDelaySlot = thread.savedState.inDelaySlot
-        thread.savedState.gpr.copyInto(cpu.state.gpr)
-        cpu.state.hi = thread.savedState.hi
-        cpu.state.lo = thread.savedState.lo
-    }
-
-    private fun processTimers() {
-        val now = timer.nowMicros()
-        while (waitingThreads.isNotEmpty() && waitingThreads.first().first <= now) {
-            val (_, threadId) = waitingThreads.removeFirst()
-            val thread = threads[threadId]
-            if (thread != null && thread.status is ThreadStatus.Waiting) {
-                thread.status = ThreadStatus.Ready
-                readyQueue.add(threadId)
-            }
-        }
-        readyQueue.sortBy { threads[it]?.priority ?: 0xFF }
-    }
+    fun currentThread(): KThread? = threads[currentThreadId]
 
     val threadCount: Int get() = threads.size
 
     fun getThread(id: Int): KThread? = threads[id]
+
+    companion object {
+        const val MAIN_PRIORITY = 0x20
+        const val MAIN_STACK_TOP = 0x09F00000
+        const val STACK_GAP = 0x00100000
+        const val THREAD_EXIT_TRAMPOLINE = 0x09FF0000u
+    }
 }

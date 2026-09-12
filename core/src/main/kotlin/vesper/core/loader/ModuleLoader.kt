@@ -36,6 +36,7 @@ class ModuleLoader : Loggable {
             Relocation.applyAll(memory, relocated.segments, relocated.relocGroups)
             resolveImports(relocated, memory, kernel)
             startImage(relocated, kernel.cpu)
+            kernel.cpu.state.setGpr(31, kernel.bootThreadExit.value.toInt())
             relocated
         }
     }

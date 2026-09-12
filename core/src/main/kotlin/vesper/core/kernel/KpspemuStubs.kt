@@ -129,7 +129,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0x267A6DD2, "__sceSasRevParam") { _, _ -> 0 }
     register(0x26D25A5D, "sceRtcTickAddMicroseconds") { _, _ -> 0 }
     register(0x26D7A24A, "sceRtcTickAddHours") { _, _ -> 0 }
-    register(0x278C0DF5, "sceKernelWaitThreadEnd") { _, _ -> 0 }
     register(0x27ACC20B, "sceVaudio_27ACC20B") { _, _ -> 0 }
     register(0x27C4594C, "sceRtcGetTime_t") { _, _ -> 0 }
     register(0x27CC57F0, "sceKernelLibcTime") { _, _ -> 0 }
@@ -336,7 +335,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0x606A4649, "sceMpegDelete") { _, _ -> 0 }
     register(0x60B81F86, "sceCtrlReadBufferNegative") { _, _ -> 0 }
     register(0x611E9E11, "sceMpegQueryStreamSize") { _, _ -> 0 }
-    register(0x616403BA, "sceKernelTerminateThread") { _, _ -> 0 }
     register(0x617F3FE6, "sceDmacMemcpy") { _, _ -> 0 }
     register(0x618C92FF, "LoadCoreForKernel_618C92FF") { _, _ -> 0 }
     register(0x61E1E525, "sceKernelUtilsMd5BlockUpdate") { _, _ -> 0 }
@@ -439,7 +437,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0x80001C4C.toInt(), "sceKernelDcacheProbe") { _, _ -> 0 }
     register(0x800C44DF.toInt(), "sceMpegAtracDecode") { _, _ -> 0 }
     register(0x805502DD.toInt(), "sceNetInetCloseWithRST") { _, _ -> 0 }
-    register(0x809CE29B.toInt(), "sceKernelExitDeleteThread") { _, _ -> 0 }
     register(0x80A21ABD.toInt(), "sceNetInetSocketAbort") { _, _ -> 0 }
     register(0x812346E4.toInt(), "sceKernelClearEventFlag") { _, _ -> 0 }
     register(0x8125221D.toInt(), "sceKernelCreateMbx") { _, _ -> 0 }
@@ -452,7 +449,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0x83BF7AFD.toInt(), "sceAtracSetSecondBuffer") { _, _ -> 0 }
     register(0x83E85EA0.toInt(), "sceAtracGetSecondBufferInfo") { _, _ -> 0 }
     register(0x840259F1.toInt(), "sceKernelUtilsSha1Digest") { _, _ -> 0 }
-    register(0x840E8133.toInt(), "sceKernelWaitThreadEndCB") { _, _ -> 0 }
     register(0x86255ADA.toInt(), "sceKernelDeleteMbx") { _, _ -> 0 }
     register(0x862AE1A6.toInt(), "scePowerGetBatteryElec") { _, _ -> 0 }
     register(0x864A9D72.toInt(), "sceKernelDcacheInvalidateAll") { _, _ -> 0 }
