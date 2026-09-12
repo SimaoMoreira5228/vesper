@@ -9,6 +9,7 @@ tests/__testoutput.txt
 tests/__testerror.txt
 __testoutput.txt
 __testerror.txt
+/testfile
 tests/src/test/resources/pspautotests/
 tests/bin/
 .opencode/
