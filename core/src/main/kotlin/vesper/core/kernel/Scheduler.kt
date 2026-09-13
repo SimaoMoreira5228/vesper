@@ -141,8 +141,9 @@ class Scheduler(
         saved.setGpr(28, gp)
         thread.gpReg = gp
         thread.exitStatus = THREAD_TERMINATED_ERROR
+        val runningPriority = threads[currentThreadId]?.priority ?: 0xFF
         makeReady(threadId)
-        reschedule()
+        if (thread.priority < runningPriority) reschedule()
         return 0
     }
 

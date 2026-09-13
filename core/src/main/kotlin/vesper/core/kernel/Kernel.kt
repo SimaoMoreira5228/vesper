@@ -50,6 +50,7 @@ class Kernel(
         syscallTable.registerAllKpspemuStubs()
         registerAllSyscalls()
         syscallTable.registerDigestSyscalls(digest)
+        syscallTable.registerTimeConversionSyscalls()
         info { "Kernel initialized" }
         timer.reset()
     }

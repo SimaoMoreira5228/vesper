@@ -59,7 +59,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0x0F9DDF1D, "LoadCoreForKernel_0F9DDF1D") { _, _ -> 0 }
     register(0x0FACAB19, "sceIoWriteAsync") { _, _ -> 0 }
     register(0x10FD7D37, "LoadCoreForKernel_10FD7D37") { _, _ -> 0 }
-    register(0x110DEC9A, "sceKernelUSec2SysClock") { _, _ -> 0 }
     register(0x115FA474, "LoadCoreForKernel_115FA474") { _, _ -> 0 }
     register(0x1181E963, "sceKernelDelaySysClockThreadCB") { _, _ -> 0 }
     register(0x1196472E, "sceKernelLoadModuleBufferMs") { _, _ -> 0 }
@@ -601,7 +600,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0xB8592D5F.toInt(), "sceUtility_B8592D5F") { _, _ -> 0 }
     register(0xB8A740F4.toInt(), "sceIoChstat") { _, _ -> 0 }
     register(0xB9685118.toInt(), "sceNetAdhocGetPtpStat") { _, _ -> 0 }
-    register(0xBA6B92E2.toInt(), "sceKernelSysClock2USec") { _, _ -> 0 }
     register(0xBAFA3DF0.toInt(), "scePowerGetCallbackMode") { _, _ -> 0 }
     register(0xBB3F5DEC.toInt(), "sceImpose_BB3F5DEC") { _, _ -> 0 }
     register(0xBB8E7FE6.toInt(), "sceFontOpenUserMemory") { _, _ -> 0 }
@@ -639,7 +637,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0xC68D9437.toInt(), "sceKernelStartVTimer") { _, _ -> 0 }
     register(0xC7154136.toInt(), "sceHprmRegisterCallback") { _, _ -> 0 }
     register(0xC7C1FC57.toInt(), "sceNetAdhocGetPdpStat") { _, _ -> 0 }
-    register(0xC8CD158C.toInt(), "sceKernelUSec2SysClockWide") { _, _ -> 0 }
     register(0xC91142E4.toInt(), "sceNetInetRecvfrom") { _, _ -> 0 }
     register(0xCA2BC850.toInt(), "LoadCoreForKernel_CA2BC850") { _, _ -> 0 }
     register(0xCA3D34C1.toInt(), "scePowerUnlock") { _, _ -> 0 }
@@ -726,7 +723,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0xE0D68148.toInt(), "sceGeListUpdateStallAddr") { _, _ -> 0 }
     register(0xE0DBDE75.toInt(), "sceLibFont_HV_E0DBDE75") { _, _ -> 0 }
     register(0xE0E6BA96.toInt(), "sceKernelGzipGetName") { _, _ -> 0 }
-    register(0xE1619D7C.toInt(), "sceKernelSysClock2USecWide") { _, _ -> 0 }
     register(0xE162CB14.toInt(), "sceNetAdhocctlGetPeerList") { _, _ -> 0 }
     register(0xE175EF66.toInt(), "__sceSasGetOutputmode") { _, _ -> 0 }
     register(0xE19C97D6.toInt(), "sceUtility_E19C97D6") { _, _ -> 0 }
