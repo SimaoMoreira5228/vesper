@@ -137,6 +137,18 @@ object VectorUnit {
                 }
                 writeMatrix(state, instructionVd(insn), result)
             }
+            in 4..15 -> {
+                val dimension = (insn ushr 23) and 3
+                val transform = readMatrix(state, instructionVs(insn))
+                val vector = readVector(state, instructionVt(insn), dimension + 1, targetPrefix)
+                val result = FloatArray(dimension + 1)
+                for (row in 0..dimension) {
+                    var sum = 0f
+                    for (k in 0..dimension) sum += transform[row * 4 + k] * vector[k]
+                    result[row] = sum
+                }
+                writeVector(state, instructionVd(insn), dimension + 1, result)
+            }
             else -> {
                 cpu.raiseException(CpuException.ReservedInstruction)
                 return
@@ -190,6 +202,10 @@ object VectorUnit {
             opcode == Opcode.VFPU1 && operation == 2 -> {
                 val scalar = readVector(state, instructionVt(insn), 1, targetPrefix)[0]
                 for (lane in 0 until size) result[lane] = source[lane] * scalar
+            }
+            opcode == Opcode.VFPU0 && operation == 7 -> {
+                val target = readVector(state, instructionVt(insn), size, targetPrefix)
+                for (lane in 0 until size) result[lane] = source[lane] / target[lane]
             }
             else -> {
                 cpu.raiseException(CpuException.ReservedInstruction)
