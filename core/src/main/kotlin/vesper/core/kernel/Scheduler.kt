@@ -8,9 +8,13 @@ import vesper.core.memory.Address
 
 sealed interface ThreadStatus {
     data object Dormant : ThreadStatus
+
     data object Ready : ThreadStatus
+
     data object Running : ThreadStatus
+
     data class Waiting(val reason: String) : ThreadStatus
+
     data object Suspended : ThreadStatus
 }
 
@@ -42,7 +46,6 @@ class Scheduler(
     private val cpu: Cpu,
     private val timer: EmulatedTimer,
 ) : Loggable {
-
     override val tag: String get() = "Scheduler"
 
     var currentThreadId: Int = -1
@@ -66,19 +69,20 @@ class Scheduler(
         val id = nextThreadId++
         val saved = CpuState()
         saved.reset(Address.ZERO)
-        threads[id] = KThread(
-            id = id,
-            name = "main",
-            priority = MAIN_PRIORITY,
-            initPriority = MAIN_PRIORITY,
-            status = ThreadStatus.Running,
-            entryPoint = Address.ZERO,
-            savedState = saved,
-            stackBase = MAIN_STACK_TOP,
-            stackTop = MAIN_STACK_TOP + STACK_GAP,
-            stackSize = STACK_GAP,
-            attr = 0,
-        )
+        threads[id] =
+            KThread(
+                id = id,
+                name = "main",
+                priority = MAIN_PRIORITY,
+                initPriority = MAIN_PRIORITY,
+                status = ThreadStatus.Running,
+                entryPoint = Address.ZERO,
+                savedState = saved,
+                stackBase = MAIN_STACK_TOP,
+                stackTop = MAIN_STACK_TOP + STACK_GAP,
+                stackSize = STACK_GAP,
+                attr = 0,
+            )
         currentThreadId = id
         return id
     }
@@ -95,30 +99,38 @@ class Scheduler(
         val saved = CpuState()
         saved.reset(entryPoint)
         saved.setGpr(31, THREAD_EXIT_TRAMPOLINE.toInt())
+        val reportedSize = (stackSize + 0xFF) and 0xFF.inv()
+        val allocation = (reportedSize + 0xFFF) and 0xFFFFF000.toInt()
         val stackTop = nextStackTop
-        val stackBase = stackTop - ((stackSize + 0xFFF) and 0xFFFFF000.toInt())
+        val stackBase = stackTop - allocation
         nextStackTop = stackBase
         saved.setGpr(29, stackTop - 16)
         cpu.memory.writeBytes(Address(stackBase.toUInt()), ByteArray(stackTop - stackBase) { 0xFF.toByte() })
 
-        threads[id] = KThread(
-            id = id,
-            name = name,
-            priority = priority,
-            initPriority = priority,
-            status = ThreadStatus.Dormant,
-            entryPoint = entryPoint,
-            savedState = saved,
-            stackBase = stackBase,
-            stackTop = stackTop,
-            stackSize = stackSize,
-            attr = attr,
-            gpReg = cpu.state.gpr(28),
-        )
+        threads[id] =
+            KThread(
+                id = id,
+                name = name,
+                priority = priority,
+                initPriority = priority,
+                status = ThreadStatus.Dormant,
+                entryPoint = entryPoint,
+                savedState = saved,
+                stackBase = stackBase,
+                stackTop = stackTop,
+                stackSize = reportedSize,
+                attr = attr,
+                gpReg = cpu.state.gpr(28),
+            )
         return id
     }
 
-    fun startThread(threadId: Int, userDataLength: Int = 0, userDataPtr: Int = 0, gp: Int = 0): Int {
+    fun startThread(
+        threadId: Int,
+        userDataLength: Int = 0,
+        userDataPtr: Int = 0,
+        gp: Int = 0,
+    ): Int {
         val thread = threads[threadId] ?: return -1
         if (thread.status != ThreadStatus.Dormant) return -1
 
@@ -237,16 +249,22 @@ class Scheduler(
         dispatchNext()
     }
 
-    fun hasRunnableThread(): Boolean =
-        threads[currentThreadId]?.status == ThreadStatus.Running || readyQueue.isNotEmpty()
+    fun hasRunnableThread(): Boolean = threads[currentThreadId]?.status == ThreadStatus.Running || readyQueue.isNotEmpty()
 
-    fun changePriority(threadId: Int, newPriority: Int): Int {
+    fun changePriority(
+        threadId: Int,
+        newPriority: Int,
+    ): Int {
         val thread = threads[threadId] ?: return -1
         thread.priority = newPriority and 0xFF
         return 0
     }
 
-    fun referThreadStatus(threadId: Int, statusPtr: Address, memory: IMemoryBus) {
+    fun referThreadStatus(
+        threadId: Int,
+        statusPtr: Address,
+        memory: IMemoryBus,
+    ) {
         val thread = threads[threadId] ?: return
         memory.write32(statusPtr, THREAD_INFO_SIZE)
         writeName(memory, statusPtr + 4, thread.name)
@@ -269,15 +287,20 @@ class Scheduler(
         memory.write32(statusPtr + 0x64, 0)
     }
 
-    private fun statusCode(status: ThreadStatus): Int = when (status) {
-        is ThreadStatus.Running -> 1
-        is ThreadStatus.Ready -> 2
-        is ThreadStatus.Waiting -> 4
-        is ThreadStatus.Suspended -> 8
-        is ThreadStatus.Dormant -> 16
-    }
+    private fun statusCode(status: ThreadStatus): Int =
+        when (status) {
+            is ThreadStatus.Running -> 1
+            is ThreadStatus.Ready -> 2
+            is ThreadStatus.Waiting -> 4
+            is ThreadStatus.Suspended -> 8
+            is ThreadStatus.Dormant -> 16
+        }
 
-    private fun writeName(memory: IMemoryBus, ptr: Address, name: String) {
+    private fun writeName(
+        memory: IMemoryBus,
+        ptr: Address,
+        name: String,
+    ) {
         val bytes = ByteArray(32)
         name.encodeToByteArray().copyInto(bytes, endIndex = minOf(name.length, 31))
         memory.writeBytes(ptr, bytes)
@@ -314,7 +337,11 @@ class Scheduler(
         cpu.state.copyFrom(thread.savedState)
     }
 
-    fun createCallback(namePtr: Int, funcPtr: Int, arg: Int): Int {
+    fun createCallback(
+        namePtr: Int,
+        funcPtr: Int,
+        arg: Int,
+    ): Int {
         val id = nextCallbackId++
         callbacks[id] = KCallback(id = id, funcPtr = funcPtr, arg = arg)
         return id
