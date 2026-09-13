@@ -11,7 +11,25 @@ object VectorUnit {
     private const val passthroughPrefix = 0xE4
 
     fun executeCop2(cpu: Cpu, insn: Int) {
-        cpu.raiseException(CpuException.ReservedInstruction)
+        val state = cpu.state
+        val immediate = insn and 0xFF
+        val rt = instructionRt(insn)
+        when ((insn ushr 21) and 0x1F) {
+            3 -> if (rt != 0) {
+                val value = if (immediate < 128) state.vpr[immediate].toRawBits()
+                else state.vfpuCtrl.getOrElse(immediate - 128) { 0 }
+                state.setGpr(rt, value)
+            }
+            7 -> {
+                val value = state.gpr(rt)
+                if (immediate < 128) {
+                    state.vpr[immediate] = Float.fromBits(value)
+                } else if (immediate - 128 < state.vfpuCtrl.size) {
+                    state.vfpuCtrl[immediate - 128] = value
+                }
+            }
+            else -> cpu.raiseException(CpuException.ReservedInstruction)
+        }
     }
 
     fun executeMemory(cpu: Cpu, insn: Int) {
@@ -258,6 +276,21 @@ object VectorUnit {
         consumePrefixes(state)
     }
 
+    private fun executeVfpuMatrix1(cpu: Cpu, insn: Int) {
+        val state = cpu.state
+        when ((insn ushr 16) and 0xF) {
+            0 -> writeMatrix(state, instructionVd(insn), readMatrix(state, instructionVs(insn)))
+            3 -> writeIdentity(state, instructionVd(insn))
+            6 -> writeMatrix(state, instructionVd(insn), FloatArray(16))
+            7 -> writeMatrix(state, instructionVd(insn), FloatArray(16) { 1f })
+            else -> {
+                cpu.raiseException(CpuException.ReservedInstruction)
+                return
+            }
+        }
+        consumePrefixes(state)
+    }
+
     private fun executeVfpu9(cpu: Cpu, insn: Int) {
         val state = cpu.state
         val size = vectorSize(insn)
@@ -363,10 +396,10 @@ object VectorUnit {
     }
 
     fun executeVfpu6(cpu: Cpu, insn: Int) {
-        val operation = instructionRt(insn)
+        val family = (insn ushr 21) and 0x1F
         val side = vectorSize(insn)
         val state = cpu.state
-        when (operation) {
+        when (family) {
             in 0..3 -> {
                 val source = readMatrix(state, instructionVs(insn))
                 val target = readMatrix(state, instructionVt(insn))
@@ -387,8 +420,7 @@ object VectorUnit {
                 val result = FloatArray(16)
                 for (row in 0 until side) {
                     for (column in 0 until side) {
-                        val factor = if (row == side - 1) scale[column] else scale[0]
-                        result[row * 4 + column] = source[row * 4 + column] * factor
+                        result[row * 4 + column] = source[row * 4 + column] * scale[0]
                     }
                 }
                 writeMatrix(state, instructionVd(insn), result)
@@ -405,6 +437,7 @@ object VectorUnit {
                 }
                 writeVector(state, instructionVd(insn), dimension + 1, result)
             }
+            28 -> executeVfpuMatrix1(cpu, insn)
             else -> {
                 cpu.raiseException(CpuException.ReservedInstruction)
                 return
