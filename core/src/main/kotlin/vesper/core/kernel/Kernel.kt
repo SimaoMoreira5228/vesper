@@ -256,14 +256,6 @@ class Kernel(
             0
         }
 
-        syscallTable.register(Nids.DISPLAY_SET_FRAMEBUF2, "sceDisplaySetFrameBuf2") { kernel, cpu ->
-            val addr = Address(cpu.state.gpr(4).toUInt())
-            val stride = cpu.state.gpr(5)
-            val format = cpu.state.gpr(6)
-            kernel.geState.setDisplayBuf(addr, stride, format)
-            0
-        }
-
         syscallTable.register(Nids.SYS_MEM_ALLOC_PARTITION, "sceKernelAllocPartitionMemory") { kernel, cpu ->
             val partition = cpu.state.gpr(4)
             val namePtr = Address(cpu.state.gpr(5).toUInt())

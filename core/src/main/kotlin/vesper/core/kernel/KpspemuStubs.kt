@@ -25,7 +25,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0x05DB22CE, "sceGeUnsetCallback") { _, _ -> 0 }
     register(0x05EF322C, "sceRtcGetDaysInMonth") { _, _ -> 0 }
     register(0x06A48659, "sceUtility_06A48659") { _, _ -> 0 }
-    register(0x06A70004, "sceIoMkdir") { _, _ -> 0 }
     register(0x06FB8A63, "sceKernelUtilsMt19937UInt") { _, _ -> 0 }
     register(0x07EC321A, "sceMp3ReserveMp3Handle") { _, _ -> 0 }
     register(0x07F58C24, "__sceSasGetAllEnvelopeHeights") { _, _ -> 0 }
@@ -61,7 +60,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0x0FACAB19, "sceIoWriteAsync") { _, _ -> 0 }
     register(0x10FD7D37, "LoadCoreForKernel_10FD7D37") { _, _ -> 0 }
     register(0x110DEC9A, "sceKernelUSec2SysClock") { _, _ -> 0 }
-    register(0x1117C65F, "sceIoRmdir") { _, _ -> 0 }
     register(0x115FA474, "LoadCoreForKernel_115FA474") { _, _ -> 0 }
     register(0x1181E963, "sceKernelDelaySysClockThreadCB") { _, _ -> 0 }
     register(0x1196472E, "sceKernelLoadModuleBufferMs") { _, _ -> 0 }
@@ -90,7 +88,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0x172D316E, "sceKernelStdin") { _, _ -> 0 }
     register(0x17768E14, "sceRegSetKeyValue") { _, _ -> 0 }
     register(0x17943399, "sceNetInetInit") { _, _ -> 0 }
-    register(0x17C1684E, "sceKernelReferThreadStatus") { _, _ -> 0 }
     register(0x18260574, "sceKernelReceiveMbx") { _, _ -> 0 }
     register(0x1909C99B, "sceRtcSetTime64_t") { _, _ -> 0 }
     register(0x1910B327, "sceHprmPeekCurrentKey") { _, _ -> 0 }
@@ -132,20 +129,16 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0x27ACC20B, "sceVaudio_27ACC20B") { _, _ -> 0 }
     register(0x27C4594C, "sceRtcGetTime_t") { _, _ -> 0 }
     register(0x27CC57F0, "sceKernelLibcTime") { _, _ -> 0 }
-    register(0x27EB27B8, "sceIoLseek") { _, _ -> 0 }
     register(0x27F3292C, "scePowerBatteryUpdateInfo") { _, _ -> 0 }
     register(0x27F6E642, "sceFontGetNumFontList") { _, _ -> 0 }
     register(0x281928A9, "sceNetTerm") { _, _ -> 0 }
     register(0x2875994B, "scePower_2875994B") { _, _ -> 0 }
     register(0x28A8E98A, "sceRegGetKeyValue") { _, _ -> 0 }
-    register(0x28B6489C, "sceKernelDeleteSema") { _, _ -> 0 }
     register(0x28D35634, "sceUtility_28D35634") { _, _ -> 0 }
     register(0x28E12023, "scePowerGetBatteryTemp") { _, _ -> 0 }
     register(0x28E1E988, "sceRtcParseRFC3339") { _, _ -> 0 }
-    register(0x293B45B8, "sceKernelGetThreadId") { _, _ -> 0 }
     register(0x2995D020, "sceUtility_2995D020") { _, _ -> 0 }
     register(0x2A2A1E07, "sceNetAdhocMatchingInit") { _, _ -> 0 }
-    register(0x2A2B3DE0, "sceUtilityLoadModule") { _, _ -> 0 }
     register(0x2A368661, "sceMp3ResetPlayPosition") { _, _ -> 0 }
     register(0x2A3D44FF, "sceKernelGetCallbackCount") { _, _ -> 0 }
     register(0x2A3E5280, "sceKernelQueryMemoryInfo") { _, _ -> 0 }
@@ -188,7 +181,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0x348D99D4, "sceCtrl_348D99D4") { _, _ -> 0 }
     register(0x349B864D, "sceKernelCancelMsgPipe") { _, _ -> 0 }
     register(0x34B78343, "sceUtilityGetSystemParamString") { _, _ -> 0 }
-    register(0x34B9FA9E, "sceKernelDcacheWritebackInvalidateRange") { _, _ -> 0 }
     register(0x354D27EA, "sceMp3GetSumDecodedSample") { _, _ -> 0 }
     register(0x35750070, "sceMp3InitResource") { _, _ -> 0 }
     register(0x358CEBF7, "LoadCoreForKernel_358CEBF7") { _, _ -> 0 }
@@ -229,11 +221,8 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0x3DFAEBA9, "sceUtilityOskShutdownStart") { _, _ -> 0 }
     register(0x3E0271D3, "sceKernelVolatileMemLock") { _, _ -> 0 }
     register(0x3E9E20D7, "LoadCoreForKernel_3E9E20D7") { _, _ -> 0 }
-    register(0x3EE30821, "sceKernelDcacheWritebackRange") { _, _ -> 0 }
-    register(0x3F53E640, "sceKernelSignalSema") { _, _ -> 0 }
     register(0x3F567499, "LoadCoreForKernel_3F567499") { _, _ -> 0 }
     register(0x3F6E26B5, "sceAtracSetHalfwayBuffer") { _, _ -> 0 }
-    register(0x3F7AD767, "sceRtcGetCurrentTick") { _, _ -> 0 }
     register(0x3FC9AE6A, "sceKernelDevkitVersion") { _, _ -> 0 }
     register(0x3FD3D324, "UtilsForKernel_3FD3D324") { _, _ -> 0 }
     register(0x402FCF22, "sceKernelWaitEventFlag") { _, _ -> 0 }
@@ -264,7 +253,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0x45C18506, "sceUtilitySetSystemParamInt") { _, _ -> 0 }
     register(0x46EBB729, "sceUmdCheckMedium") { _, _ -> 0 }
     register(0x472694CD, "sceFontPointToPixelH") { _, _ -> 0 }
-    register(0x478FE6F5, "scePowerGetBusClockFrequency") { _, _ -> 0 }
     register(0x47A0B729, "sceKernelIsCpuIntrSuspended") { _, _ -> 0 }
     register(0x48293280, "sceFontSetResolution") { _, _ -> 0 }
     register(0x483CE86B, "scePowerGetBatteryVolt") { _, _ -> 0 }
@@ -312,7 +300,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0x57FCB733, "sceFontOpenUserFile") { _, _ -> 0 }
     register(0x585F1C09, "sceKernelUtilsSha1BlockResult") { _, _ -> 0 }
     register(0x587F4973, "LoadCoreForKernel_587F4973") { _, _ -> 0 }
-    register(0x58B1F937, "sceKernelPollSema") { _, _ -> 0 }
     register(0x591A4AA2, "sceMpegUnRegistStream") { _, _ -> 0 }
     register(0x5AC68A41, "sceMpeg_5AC68A41") { _, _ -> 0 }
     register(0x5BE8D595, "sceNetInetSelect") { _, _ -> 0 }
@@ -371,7 +358,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0x6C00BE57, "LoadCoreForKernel_6C00BE57") { _, _ -> 0 }
     register(0x6C6887EE, "UtilsForKernel_6C6887EE") { _, _ -> 0 }
     register(0x6D08A871, "sceIoUnassign") { _, _ -> 0 }
-    register(0x6D212BAC, "sceKernelWaitSemaCB") { _, _ -> 0 }
     register(0x6D4BEC68, "sceAudioInput") { _, _ -> 0 }
     register(0x6F56F9CF, "sceUtility_6F56F9CF") { _, _ -> 0 }
     register(0x6F797E03, "sceKernelRegisterStderrPipe") { _, _ -> 0 }
@@ -384,12 +370,9 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0x710F61B5, "sceKernelLoadModuleMs") { _, _ -> 0 }
     register(0x71B19E77, "sceIoLseekAsync") { _, _ -> 0 }
     register(0x71B5FB67, "sceHprmGetHpDetect") { _, _ -> 0 }
-    register(0x71BC9871, "sceKernelChangeThreadPriority") { _, _ -> 0 }
-    register(0x71EC4271, "sceKernelLibcGettimeofday") { _, _ -> 0 }
     register(0x72189C48, "sceImposeSetUMDPopup") { _, _ -> 0 }
     register(0x732B042A, "sceMp3EndEntry") { _, _ -> 0 }
     register(0x7333E539, "UtilsForKernel_7333E539") { _, _ -> 0 }
-    register(0x737486F2, "scePowerSetClockFrequency") { _, _ -> 0 }
     register(0x73BFD52D, "sceNetAdhocSetSocketAlert") { _, _ -> 0 }
     register(0x740DF7F0, "UtilsForKernel_740DF7F0") { _, _ -> 0 }
     register(0x740FCCD1, "sceMpegAvcDecodeStop") { _, _ -> 0 }
@@ -443,7 +426,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0x81AEE1BE.toInt(), "sceNetAdhocctlGetScanInfo") { _, _ -> 0 }
     register(0x81C44706.toInt(), "sceUtility_81C44706") { _, _ -> 0 }
     register(0x81FCDA34.toInt(), "sceRtcIsAlarmed") { _, _ -> 0 }
-    register(0x82BC5777.toInt(), "sceKernelGetSystemTimeWide") { _, _ -> 0 }
     register(0x8326AB05.toInt(), "sceUtility_8326AB05") { _, _ -> 0 }
     register(0x835ECE6F.toInt(), "sceReg_835ECE6F") { _, _ -> 0 }
     register(0x83BF7AFD.toInt(), "sceAtracSetSecondBuffer") { _, _ -> 0 }
@@ -493,7 +475,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0x8F2DF740.toInt(), "ModuleMgrForUser_8F2DF740") { _, _ -> 0 }
     register(0x8F450998.toInt(), "sceMp3GetSamplingRate") { _, _ -> 0 }
     register(0x8FFDF9A2.toInt(), "sceKernelCancelSema") { _, _ -> 0 }
-    register(0x91E4F6A7.toInt(), "sceKernelLibcClock") { _, _ -> 0 }
     register(0x91E70E35.toInt(), "sceUtilityNetconfUpdate") { _, _ -> 0 }
     register(0x920F104A.toInt(), "sceKernelIcacheInvalidateAll") { _, _ -> 0 }
     register(0x921FCCCF.toInt(), "sceMpegGetAvcEsAu") { _, _ -> 0 }
@@ -532,7 +513,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0x9ED0AE87.toInt(), "sceRtcCompareTick") { _, _ -> 0 }
     register(0x9EEC51A4.toInt(), "LoadCoreForKernel_9EEC51A4") { _, _ -> 0 }
     register(0x9F5A77CB.toInt(), "LoadCoreForKernel_9F5A77CB") { _, _ -> 0 }
-    register(0x9FA03CD3.toInt(), "sceKernelDeleteThread") { _, _ -> 0 }
     register(0xA03D29BA.toInt(), "sceUtilityInstallUpdate") { _, _ -> 0 }
     register(0xA084E056.toInt(), "sceUtility_A084E056") { _, _ -> 0 }
     register(0xA0B5A7C2.toInt(), "sceIoReadAsync") { _, _ -> 0 }
@@ -568,7 +548,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0xA9D22232.toInt(), "scePowerSetCallbackMode") { _, _ -> 0 }
     register(0xA9ED66B9.toInt(), "sceNetInetTerm") { _, _ -> 0 }
     register(0xAA3DE7B5.toInt(), "sceFontGetShadowInfo") { _, _ -> 0 }
-    register(0xAA73C935.toInt(), "sceKernelExitThread") { _, _ -> 0 }
     register(0xAA9AF5CF.toInt(), "UtilsForKernel_AA9AF5CF") { _, _ -> 0 }
     register(0xAB083EA9.toInt(), "sceUtility_AB083EA9") { _, _ -> 0 }
     register(0xAB0E9556.toInt(), "sceMpeg_AB0E9556") { _, _ -> 0 }
@@ -657,7 +636,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0xC2DDBEB5.toInt(), "sceRtc_C2DDBEB5") { _, _ -> 0 }
     register(0xC2F02CDD.toInt(), "sceMpeg_C2F02CDD") { _, _ -> 0 }
     register(0xC345DED2.toInt(), "sceMpeg_C345DED2") { _, _ -> 0 }
-    register(0xC41C2853.toInt(), "sceRtcGetTickResolution") { _, _ -> 0 }
     register(0xC431A214.toInt(), "sceNet_C431A214") { _, _ -> 0 }
     register(0xC45C99CC.toInt(), "sceMpegQueryUserdataEsSize") { _, _ -> 0 }
     register(0xC4700FA3.toInt(), "sceUtilityInstallGetStatus") { _, _ -> 0 }
@@ -709,14 +687,12 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0xD4475AA8.toInt(), "sceRegGetKeyInfo") { _, _ -> 0 }
     register(0xD4B95FFB.toInt(), "sceUtilitySavedataUpdate") { _, _ -> 0 }
     register(0xD4DD6E75.toInt(), "sceMpeg_D4DD6E75") { _, _ -> 0 }
-    register(0xD59EAD2F.toInt(), "sceKernelWakeupThread") { _, _ -> 0 }
     register(0xD5A229C9.toInt(), "__sceSasRevEVOL") { _, _ -> 0 }
     register(0xD5C28CC0.toInt(), "sceAtracEndEntry") { _, _ -> 0 }
     register(0xD5EBBBCD.toInt(), "__sceSasSetSteepWave") { _, _ -> 0 }
     register(0xD61E6961.toInt(), "sceKernelReleaseSubIntrHandler") { _, _ -> 0 }
     register(0xD6A5F2F7.toInt(), "sceAtracGetMaxSample") { _, _ -> 0 }
     register(0xD6D016EF.toInt(), "scePowerLock") { _, _ -> 0 }
-    register(0xD6DA4BA1.toInt(), "sceKernelCreateSema") { _, _ -> 0 }
     register(0xD7763699.toInt(), "sceWlanGetSwitchState") { _, _ -> 0 }
     register(0xD81957B7.toInt(), "sceUtility_D81957B7") { _, _ -> 0 }
     register(0xD8199E4C.toInt(), "sceKernelReferFplStatus") { _, _ -> 0 }
@@ -734,7 +710,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0xDB094E1B.toInt(), "sceNetInetAccept") { _, _ -> 0 }
     register(0xDB62C9CF.toInt(), "scePowerCancelRequest") { _, _ -> 0 }
     register(0xDB6BAA71.toInt(), "LoadCoreForKernel_DB6BAA71") { _, _ -> 0 }
-    register(0xDB738F35.toInt(), "sceKernelGetSystemTime") { _, _ -> 0 }
     register(0xDB83A952.toInt(), "SysMemUserForUser_DB83A952") { _, _ -> 0 }
     register(0xDB88F458.toInt(), "sceNet_DB88F458") { _, _ -> 0 }
     register(0xDB9D28DD.toInt(), "scePowerUnregitserCallback") { _, _ -> 0 }
@@ -779,7 +754,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0xE3EB004C.toInt(), "sceIoDread") { _, _ -> 0 }
     register(0xE4606649.toInt(), "sceLibFont_HV_E4606649") { _, _ -> 0 }
     register(0xE47E40E4.toInt(), "sceGeEdramGetAddr") { _, _ -> 0 }
-    register(0xE49BFE92.toInt(), "sceUtilityUnloadModule") { _, _ -> 0 }
     register(0xE49EB257.toInt(), "sceMpeg_E49EB257") { _, _ -> 0 }
     register(0xE4C4211C.toInt(), "ModuleMgrForUser_E4C4211C") { _, _ -> 0 }
     register(0xE51B4B7A.toInt(), "sceRtcTickAddDays") { _, _ -> 0 }
@@ -827,7 +801,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0xF1130D5F.toInt(), "LoadCoreForKernel_F1130D5F") { _, _ -> 0 }
     register(0xF16EAF4F.toInt(), "sceNetAdhocMatchingDelete") { _, _ -> 0 }
     register(0xF1ACA4B2.toInt(), "LoadCoreForKernel_F1ACA4B2") { _, _ -> 0 }
-    register(0xF27A9C51.toInt(), "sceIoRemove") { _, _ -> 0 }
     register(0xF2930C9C.toInt(), "sceMpegAvcDecodeStopYCbCr") { _, _ -> 0 }
     register(0xF2A4AFE5.toInt(), "sceRtcTickAddSeconds") { _, _ -> 0 }
     register(0xF2D8D1B4.toInt(), "ModuleMgrForUser_F2D8D1B4") { _, _ -> 0 }
@@ -869,7 +842,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0xFD7DE6CD.toInt(), "sceHprm_FD7DE6CD") { _, _ -> 0 }
     register(0xFE246728.toInt(), "sceMpegGetAvcAu") { _, _ -> 0 }
     register(0xFE707FDF.toInt(), "SysMemUserForUser_FE707FDF") { _, _ -> 0 }
-    register(0xFEE03A2F.toInt(), "scePowerGetCpuClockFrequency") { _, _ -> 0 }
     register(0xFEF27DC1.toInt(), "ModuleMgrForUser_FEF27DC1") { _, _ -> 0 }
     register(0xFF1A2F07.toInt(), "sceImpose_FF1A2F07") { _, _ -> 0 }
     register(0xFF5940B6.toInt(), "sceIoCloseAsync") { _, _ -> 0 }
