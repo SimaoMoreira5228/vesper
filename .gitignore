@@ -14,7 +14,7 @@ tests/src/test/resources/pspautotests/
 tests/bin/
 .opencode/
 /__iorename_test*.txt
-/__testfinish.txt
+__testfinish.txt
 /noexist/
 /test:
 /tty0:

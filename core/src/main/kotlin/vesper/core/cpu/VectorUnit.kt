@@ -9,6 +9,7 @@ object VectorUnit {
     private const val targetPrefix = 1
     private const val destinationPrefix = 2
     private const val passthroughPrefix = 0xE4
+    private const val CC_REGISTER = 3
 
     fun executeCop2(cpu: Cpu, insn: Int) {
         val state = cpu.state
@@ -100,6 +101,7 @@ object VectorUnit {
             2 -> executeVfpu9(cpu, insn)
             in 16..19 -> executeVf2i(cpu, insn, selector)
             20 -> executeVi2f(cpu, insn)
+            21 -> executeVcmov(cpu, insn)
             else -> cpu.raiseException(CpuException.ReservedInstruction)
         }
     }
@@ -247,6 +249,11 @@ object VectorUnit {
         val size = vectorSize(insn)
         val source = readVector(state, instructionVs(insn), size, sourcePrefix)
         val target = readVector(state, instructionVt(insn), size, targetPrefix)
+        if (operation == 0) {
+            executeVcmp(state, insn and 0xF, source, target, size)
+            consumePrefixes(state)
+            return
+        }
         val result = FloatArray(size)
         when (operation) {
             2 -> for (lane in 0 until size) result[lane] = minOf(source[lane], target[lane])
@@ -273,6 +280,64 @@ object VectorUnit {
             }
         }
         writeVector(state, instructionVd(insn), size, result)
+        consumePrefixes(state)
+    }
+
+    private fun executeVcmp(state: CpuState, condition: Int, source: FloatArray, target: FloatArray, size: Int) {
+        var bits = 0
+        var orValue = 0
+        var andValue = 1
+        var affected = (1 shl 4) or (1 shl 5)
+        for (lane in 0 until size) {
+            val a = source[lane]
+            val b = target[lane]
+            val matches = when (condition) {
+                0 -> false
+                1 -> a == b
+                2 -> a < b
+                3 -> a <= b
+                4 -> true
+                5 -> a != b
+                6 -> a >= b
+                7 -> a > b
+                8 -> a == 0f
+                9 -> a.isNaN()
+                10 -> a.isInfinite()
+                11 -> a.isNaN() || a.isInfinite()
+                12 -> a != 0f
+                13 -> !a.isNaN()
+                14 -> !a.isInfinite()
+                15 -> !a.isNaN() && !a.isInfinite()
+                else -> false
+            }
+            val bit = if (matches) 1 else 0
+            bits = bits or (bit shl lane)
+            orValue = orValue or bit
+            andValue = andValue and bit
+            affected = affected or (1 shl lane)
+        }
+        val previous = state.vfpuCtrl[CC_REGISTER]
+        state.vfpuCtrl[CC_REGISTER] = (previous and affected.inv()) or
+            ((bits or (orValue shl 4) or (andValue shl 5)) and affected)
+    }
+
+    private fun executeVcmov(cpu: Cpu, insn: Int) {
+        val state = cpu.state
+        val size = vectorSize(insn)
+        val conditional = (insn ushr 19) and 1
+        val index = (insn ushr 16) and 7
+        val source = readVector(state, instructionVs(insn), size, sourcePrefix)
+        val destination = readVector(state, instructionVd(insn), size, targetPrefix)
+        val condition = state.vfpuCtrl[CC_REGISTER]
+        when {
+            index < 6 -> if (((condition ushr index) and 1) == (1 - conditional)) {
+                for (lane in 0 until size) destination[lane] = source[lane]
+            }
+            index == 6 -> for (lane in 0 until size) {
+                if (((condition ushr lane) and 1) == (1 - conditional)) destination[lane] = source[lane]
+            }
+        }
+        writeVector(state, instructionVd(insn), size, destination)
         consumePrefixes(state)
     }
 
