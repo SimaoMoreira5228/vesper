@@ -18,6 +18,7 @@ class PspAutotestSuiteTest : StringSpec({
         Case("display/display"),
         Case("hash/hash"),
         Case("misc/timeconv"),
+        Case("rtc/rtc"),
         Case("string/string"),
         Case("threads/threads/threads"),
         Case("threads/semaphores/semaphores"),

@@ -2,6 +2,8 @@ package vesper.core.kernel
 
 import vesper.core.IMemoryBus
 import vesper.core.memory.Address
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 
 fun SyscallTable.registerTimeConversionSyscalls() {
     register(Nids.USEC2SYS_CLOCK, "sceKernelUSec2SysClock") { kernel, cpu ->
@@ -26,6 +28,25 @@ fun SyscallTable.registerTimeConversionSyscalls() {
         writeOptional(kernel.memory, cpu.state.gpr(7), (clock % 1_000_000uL).toInt())
         0
     }
+    register(Nids.RTC_GET_CURRENT_CLOCK, "sceRtcGetCurrentClock") { kernel, cpu ->
+        writeClock(kernel.memory, Address(cpu.state.gpr(4).toUInt()), cpu.state.gpr(5))
+        0
+    }
+    register(Nids.RTC_GET_CURRENT_CLOCK_LOCAL, "sceRtcGetCurrentClockLocalTime") { kernel, cpu ->
+        writeClock(kernel.memory, Address(cpu.state.gpr(4).toUInt()), 0)
+        0
+    }
+}
+
+private fun writeClock(memory: IMemoryBus, timePtr: Address, timezoneMinutes: Int) {
+    val now = OffsetDateTime.now(ZoneOffset.UTC).plusMinutes(timezoneMinutes.toLong())
+    memory.write16(timePtr, now.year)
+    memory.write16(timePtr + 2, now.monthValue)
+    memory.write16(timePtr + 4, now.dayOfMonth)
+    memory.write16(timePtr + 6, now.hour)
+    memory.write16(timePtr + 8, now.minute)
+    memory.write16(timePtr + 10, now.second)
+    memory.write32(timePtr + 12, now.nano / 1000)
 }
 
 private fun read64(memory: IMemoryBus, address: Address): ULong {

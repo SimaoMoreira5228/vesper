@@ -747,7 +747,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0xE66CB92E.toInt(), "sceGeGetStack") { _, _ -> 0 }
     register(0xE7282CB6.toInt(), "sceKernelAllocateFplCB") { _, _ -> 0 }
     register(0xE7B778D8.toInt(), "sceUtility_E7B778D8") { _, _ -> 0 }
-    register(0xE7C27D1B.toInt(), "sceRtcGetCurrentClockLocalTime") { _, _ -> 0 }
     register(0xE83742BA.toInt(), "sceUmdDeactivate") { _, _ -> 0 }
     register(0xE855BF76.toInt(), "__sceSasSetOutputmode") { _, _ -> 0 }
     register(0xE860E75E.toInt(), "sceKernelUtilsMt19937Init") { _, _ -> 0 }
