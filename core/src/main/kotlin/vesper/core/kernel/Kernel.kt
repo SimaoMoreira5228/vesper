@@ -26,6 +26,8 @@ class Kernel(
 
     override val tag: String get() = "Kernel"
 
+    private val digest = Digest()
+
     private var exitRequested: Boolean = false
     val importMap = mutableMapOf<Address, Int>()
     val bootThreadExit: Address = Address(Scheduler.THREAD_EXIT_TRAMPOLINE)
@@ -47,6 +49,7 @@ class Kernel(
         writeExitTrampoline()
         syscallTable.registerAllKpspemuStubs()
         registerAllSyscalls()
+        syscallTable.registerDigestSyscalls(digest)
         info { "Kernel initialized" }
         timer.reset()
     }
@@ -277,6 +280,11 @@ class Kernel(
 
         syscallTable.register(Nids.DISPLAY_SET_MODE, "sceDisplaySetMode") { _, _ -> 0 }
         syscallTable.register(Nids.DISPLAY_GET_MODE, "sceDisplayGetMode") { _, _ -> 0 }
+
+        syscallTable.register(Nids.DISPLAY_GET_FRAME_PER_SEC, "sceDisplayGetFramePerSec") { _, cpu ->
+            cpu.state.fpr[0] = 59.940060f
+            0
+        }
 
         syscallTable.register(Nids.DISPLAY_SET_FRAMEBUF, "sceDisplaySetFrameBuf") { kernel, cpu ->
             val addr = Address(cpu.state.gpr(4).toUInt())

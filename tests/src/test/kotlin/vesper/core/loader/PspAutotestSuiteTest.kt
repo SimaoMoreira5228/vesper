@@ -15,6 +15,8 @@ class PspAutotestSuiteTest : StringSpec({
         Case("cpu/fpu/fpu", maxInstructions = 300_000_000),
         Case("cpu/lsu/lsu"),
         Case("cpu/icache/icache"),
+        Case("display/display"),
+        Case("hash/hash"),
         Case("string/string"),
         Case("threads/threads/threads"),
         Case("threads/semaphores/semaphores"),
