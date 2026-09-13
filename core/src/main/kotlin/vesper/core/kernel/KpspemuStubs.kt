@@ -322,7 +322,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0x618C92FF, "LoadCoreForKernel_618C92FF") { _, _ -> 0 }
     register(0x61EB33F5, "sceAtracReleaseAtracID") { _, _ -> 0 }
     register(0x6231A71D, "sceKernelSetPTRIG") { _, _ -> 0 }
-    register(0x623AE665, "sceKernelTryAllocateFpl") { _, _ -> 0 }
     register(0x62685E98, "sceRtcGetLastAdjustedTime") { _, _ -> 0 }
     register(0x627E6F3A, "sceKernelReferSystemStatus") { _, _ -> 0 }
     register(0x6332AA39, "sceUtilityNetconfGetStatus") { _, _ -> 0 }
@@ -617,7 +616,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0xBFAD9D71.toInt(), "LoadCoreForKernel_BFAD9D71") { _, _ -> 0 }
     register(0xBFCFEFF6.toInt(), "sceNet_BFCFEFF6") { _, _ -> 0 }
     register(0xC02CF6B5.toInt(), "sceMpegQueryPcmEsSize") { _, _ -> 0 }
-    register(0xC07BB470.toInt(), "sceKernelCreateFpl") { _, _ -> 0 }
     register(0xC0B3FFD2.toInt(), "sceKernelGetVTimerTimeWide") { _, _ -> 0 }
     register(0xC132E22F.toInt(), "sceMpegQueryMemSize") { _, _ -> 0 }
     register(0xC152080A.toInt(), "sceCtrlPeekBufferNegative") { _, _ -> 0 }
@@ -691,7 +689,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0xD8C5F121.toInt(), "sceMpegCreate") { _, _ -> 0 }
     register(0xD8DE5C1E.toInt(), "SysMemUserForUser_D8DE5C1E") { _, _ -> 0 }
     register(0xD8F54A51.toInt(), "sceMp3GetLoopNum") { _, _ -> 0 }
-    register(0xD979E9BF.toInt(), "sceKernelAllocateFpl") { _, _ -> 0 }
     register(0xD97F94D8.toInt(), "sceDmacTryMemcpy") { _, _ -> 0 }
     register(0xDA97F1AA.toInt(), "sceUtility_DA97F1AA") { _, _ -> 0 }
     register(0xDAA3F564.toInt(), "sceKernelReferAlarmStatus") { _, _ -> 0 }
@@ -769,7 +766,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0xEC2861D0.toInt(), "LoadCoreForKernel_EC2861D0") { _, _ -> 0 }
     register(0xECE1D3E5.toInt(), "sceUtility_ECE1D3E5") { _, _ -> 0 }
     register(0xED0FAD38.toInt(), "sceUtility_ED0FAD38") { _, _ -> 0 }
-    register(0xED1410E0.toInt(), "sceKernelDeleteFpl") { _, _ -> 0 }
     register(0xEDC13FE5.toInt(), "scePowerGetIdleTimer") { _, _ -> 0 }
     register(0xEE232411.toInt(), "sceFontSetAltCharacterCode") { _, _ -> 0 }
     register(0xEECE61D2.toInt(), "sceNetInetRecvmsg") { _, _ -> 0 }
@@ -795,7 +791,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0xF5478233.toInt(), "sceMp3ReleaseMp3Handle") { _, _ -> 0 }
     register(0xF5FCC995.toInt(), "sceRtc_F5FCC995") { _, _ -> 0 }
     register(0xF6269B82.toInt(), "sceUtilityOskInitStart") { _, _ -> 0 }
-    register(0xF6414A71.toInt(), "sceKernelFreeFpl") { _, _ -> 0 }
     register(0xF64910F0.toInt(), "sceUtilityUnloadUsbModule") { _, _ -> 0 }
     register(0xF6C7F05C.toInt(), "LoadCoreForKernel_F6C7F05C") { _, _ -> 0 }
     register(0xF79472D7.toInt(), "sceNetAdhocMatchingSendData") { _, _ -> 0 }

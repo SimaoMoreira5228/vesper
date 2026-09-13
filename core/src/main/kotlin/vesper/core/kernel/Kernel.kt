@@ -318,6 +318,45 @@ class Kernel(
             kernel.memoryManager.totalFreeMemSize()
         }
 
+        syscallTable.register(Nids.CREATE_FPL, "sceKernelCreateFpl") { kernel, cpu ->
+            val name = readStringFromMemory(kernel.memory, Address(cpu.state.gpr(4).toUInt()))
+            val blockSize = cpu.state.gpr(7)
+            val blockCount = cpu.state.gpr(8)
+            kernel.memoryManager.createFixedPool(name, blockSize, blockCount)
+        }
+
+        syscallTable.register(Nids.ALLOCATE_FPL, "sceKernelAllocateFpl") { kernel, cpu ->
+            val fplId = cpu.state.gpr(4)
+            val dataPtr = cpu.state.gpr(5)
+            val block = kernel.memoryManager.allocateFixedPoolBlock(fplId)
+            if (block < 0) {
+                -1
+            } else {
+                kernel.memory.write32(Address(dataPtr.toUInt()), block)
+                0
+            }
+        }
+
+        syscallTable.register(Nids.TRY_ALLOCATE_FPL, "sceKernelTryAllocateFpl") { kernel, cpu ->
+            val fplId = cpu.state.gpr(4)
+            val dataPtr = cpu.state.gpr(5)
+            val block = kernel.memoryManager.allocateFixedPoolBlock(fplId)
+            if (block < 0) {
+                -1
+            } else {
+                kernel.memory.write32(Address(dataPtr.toUInt()), block)
+                0
+            }
+        }
+
+        syscallTable.register(Nids.FREE_FPL, "sceKernelFreeFpl") { kernel, cpu ->
+            kernel.memoryManager.freeFixedPoolBlock(cpu.state.gpr(4), cpu.state.gpr(5))
+        }
+
+        syscallTable.register(Nids.DELETE_FPL, "sceKernelDeleteFpl") { kernel, cpu ->
+            kernel.memoryManager.deleteFixedPool(cpu.state.gpr(4))
+        }
+
         syscallTable.register(Nids.DISPLAY_WAIT_VBLANK_START, "sceDisplayWaitVblankStart") { _, _ -> 0 }
 
         syscallTable.register(Nids.DISPLAY_WAIT_VBLANK_START_CB, "sceDisplayWaitVblankStartCB") { kernel, _ ->

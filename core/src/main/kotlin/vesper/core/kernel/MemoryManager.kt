@@ -12,6 +12,14 @@ data class MemoryPartition(
     var allocated: Boolean = false,
 )
 
+data class FixedPool(
+    val id: Int,
+    val blockSize: Int,
+    val blockCount: Int,
+    val base: Int,
+    val used: BooleanArray = BooleanArray(blockCount),
+)
+
 class MemoryManager : Loggable {
 
     override val tag: String get() = "MemoryManager"
@@ -43,7 +51,6 @@ class MemoryManager : Loggable {
         addr: Int = -1,
     ): Int {
         val alignedSize = (size + 0xFF) and 0xFFFFF00
-        // Calculate how much space is already used in the User partition
         val used = allocs.values.sumOf { it.size }
         val remaining = heapSize - used
         if (remaining >= alignedSize) {
@@ -84,5 +91,38 @@ class MemoryManager : Loggable {
     fun totalFreeMemSize(): Int {
         val used = allocs.values.sumOf { it.size }
         return (heapSize - used).coerceAtLeast(0)
+    }
+
+    private var nextFixedPoolId: Int = 1
+    private val fixedPools = mutableMapOf<Int, FixedPool>()
+
+    fun createFixedPool(name: String, blockSize: Int, blockCount: Int): Int {
+        if (blockSize <= 0 || blockCount <= 0) return -1
+        val partition = allocPartitionMemory(name, 2, blockSize * blockCount)
+        if (partition < 0) return -1
+        val id = nextFixedPoolId++
+        fixedPools[id] = FixedPool(id, blockSize, blockCount, getBlockAddress(partition))
+        return id
+    }
+
+    fun allocateFixedPoolBlock(fplId: Int): Int {
+        val pool = fixedPools[fplId] ?: return -1
+        val index = pool.used.indexOfFirst { !it }
+        if (index < 0) return -1
+        pool.used[index] = true
+        return pool.base + index * pool.blockSize
+    }
+
+    fun freeFixedPoolBlock(fplId: Int, address: Int): Int {
+        val pool = fixedPools[fplId] ?: return -1
+        val index = (address - pool.base) / pool.blockSize
+        if (index < 0 || index >= pool.blockCount || !pool.used[index]) return -1
+        pool.used[index] = false
+        return 0
+    }
+
+    fun deleteFixedPool(fplId: Int): Int {
+        fixedPools.remove(fplId) ?: return -1
+        return 0
     }
 }

@@ -94,4 +94,9 @@ object Nids {
     val SYS_MEM_TOTAL_FREE: Int = 0xF919F628.toInt()
     val SYS_MEM_SET_COMPILED_SDK: Int = 0x7591C7DB
     val SYS_MEM_SET_COMPILER: Int = 0xF77D77CB.toInt()
+    val CREATE_FPL: Int = 0xC07BB470.toInt()
+    val ALLOCATE_FPL: Int = 0xD979E9BF.toInt()
+    val TRY_ALLOCATE_FPL: Int = 0x623AE665
+    val FREE_FPL: Int = 0xF6414A71.toInt()
+    val DELETE_FPL: Int = 0xED1410E0.toInt()
 }

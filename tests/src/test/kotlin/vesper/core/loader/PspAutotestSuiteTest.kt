@@ -17,6 +17,7 @@ class PspAutotestSuiteTest : StringSpec({
         Case("cpu/icache/icache"),
         Case("display/display"),
         Case("hash/hash"),
+        Case("loader/bss/bss"),
         Case("misc/timeconv"),
         Case("rtc/rtc"),
         Case("string/string"),
