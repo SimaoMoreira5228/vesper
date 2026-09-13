@@ -64,10 +64,12 @@ object OpcodeTable {
         handlers[Opcode.VFPU1] = InstructionHandler(VectorUnit::executeArithmetic)
         handlers[Opcode.LV_S] = InstructionHandler(VectorUnit::executeMemory)
         handlers[Opcode.VFPU4] = InstructionHandler(VectorUnit::executeVfpu4)
+        handlers[Opcode.LVL_Q] = InstructionHandler(VectorUnit::executeMemory)
         handlers[Opcode.LV_Q] = InstructionHandler(VectorUnit::executeMemory)
         handlers[Opcode.VFPU5] = InstructionHandler(VectorUnit::executeVfpu5)
         handlers[Opcode.SV_S] = InstructionHandler(VectorUnit::executeMemory)
         handlers[Opcode.VFPU6] = InstructionHandler(VectorUnit::executeVfpu6)
+        handlers[Opcode.SVL_Q] = InstructionHandler(VectorUnit::executeMemory)
         handlers[Opcode.SV_Q] = InstructionHandler(VectorUnit::executeMemory)
 
         specialHandlers[Funct.SLL] = InstructionHandler(Arithmetic::executeSll)

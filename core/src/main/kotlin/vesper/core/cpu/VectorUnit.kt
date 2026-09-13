@@ -19,11 +19,29 @@ object VectorUnit {
         val base = cpu.state.gpr(instructionRs(insn)).toUInt()
         val offset = (insn and 0xFFFC).toShort().toInt()
         val address = Address(base + offset.toUInt())
-        val register = instructionRt(insn) or ((insn and 3) shl 5)
+        val register = instructionRt(insn) or ((insn and 1) shl 5)
 
         when (opcode) {
             Opcode.LV_S -> writeScalarBits(cpu.state, register, cpu.memory.read32(address))
             Opcode.SV_S -> cpu.memory.write32(address, readScalarBits(cpu.state, register))
+            Opcode.LVL_Q -> {
+                val lanes = vectorRegisters(register, 4)
+                val laneOffset = (address.value.toInt() ushr 2) and 3
+                if (insn and 2 == 0) {
+                    for (i in 0..laneOffset) cpu.state.vpr[lanes[3 - i]] = Float.fromBits(cpu.memory.read32(address - i * 4))
+                } else {
+                    for (i in 0..(3 - laneOffset)) cpu.state.vpr[lanes[i]] = Float.fromBits(cpu.memory.read32(address + i * 4))
+                }
+            }
+            Opcode.SVL_Q -> {
+                val lanes = vectorRegisters(register, 4)
+                val laneOffset = (address.value.toInt() ushr 2) and 3
+                if (insn and 2 == 0) {
+                    for (i in 0..laneOffset) cpu.memory.write32(address - i * 4, cpu.state.vpr[lanes[3 - i]].toRawBits())
+                } else {
+                    for (i in 0..(3 - laneOffset)) cpu.memory.write32(address + i * 4, cpu.state.vpr[lanes[i]].toRawBits())
+                }
+            }
             Opcode.LV_Q -> {
                 val values = FloatArray(4) { lane ->
                     Float.fromBits(cpu.memory.read32(address + lane * 4))
@@ -58,6 +76,15 @@ object VectorUnit {
     }
 
     fun executeVfpu4(cpu: Cpu, insn: Int) {
+        when (val selector = (insn ushr 21) and 0x1F) {
+            0 -> executeVfpu4Unary(cpu, insn)
+            in 16..19 -> executeVf2i(cpu, insn, selector)
+            20 -> executeVi2f(cpu, insn)
+            else -> cpu.raiseException(CpuException.ReservedInstruction)
+        }
+    }
+
+    private fun executeVfpu4Unary(cpu: Cpu, insn: Int) {
         val operation = instructionRt(insn)
         val size = vectorSize(insn)
         val state = cpu.state
@@ -75,6 +102,42 @@ object VectorUnit {
                 return
             }
         }
+        consumePrefixes(state)
+    }
+
+    private fun executeVf2i(cpu: Cpu, insn: Int, mode: Int) {
+        val state = cpu.state
+        val size = vectorSize(insn)
+        val source = readVector(state, instructionVs(insn), size, sourcePrefix)
+        val scale = (1L shl ((insn ushr 16) and 0x1F)).toFloat()
+        val result = FloatArray(size) { lane ->
+            val value = source[lane]
+            val bits = if (value.isNaN()) {
+                Int.MAX_VALUE
+            } else {
+                val scaled = value.toDouble() * scale
+                when {
+                    scaled > Int.MAX_VALUE.toDouble() -> Int.MAX_VALUE
+                    scaled <= Int.MIN_VALUE.toDouble() -> Int.MIN_VALUE
+                    mode == 16 -> kotlin.math.round(scaled).toInt()
+                    mode == 17 -> if (value >= 0) kotlin.math.floor(scaled).toInt() else kotlin.math.ceil(scaled).toInt()
+                    mode == 18 -> kotlin.math.ceil(scaled).toInt()
+                    else -> kotlin.math.floor(scaled).toInt()
+                }
+            }
+            Float.fromBits(bits)
+        }
+        writeVector(state, instructionVd(insn), size, result)
+        consumePrefixes(state)
+    }
+
+    private fun executeVi2f(cpu: Cpu, insn: Int) {
+        val state = cpu.state
+        val size = vectorSize(insn)
+        val source = readVector(state, instructionVs(insn), size, sourcePrefix)
+        val scale = 1f / (1L shl ((insn ushr 16) and 0x1F)).toFloat()
+        val result = FloatArray(size) { lane -> source[lane].toRawBits().toFloat() * scale }
+        writeVector(state, instructionVd(insn), size, result)
         consumePrefixes(state)
     }
 

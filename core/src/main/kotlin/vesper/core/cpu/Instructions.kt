@@ -45,10 +45,12 @@ object Opcode {
     const val VFPU1     = 0x19
     const val LV_S      = 0x32
     const val VFPU4     = 0x34
+    const val LVL_Q     = 0x35
     const val LV_Q      = 0x36
     const val VFPU5     = 0x37
     const val SV_S      = 0x3A
     const val VFPU6     = 0x3C
+    const val SVL_Q     = 0x3D
     const val SV_Q      = 0x3E
 }
 
