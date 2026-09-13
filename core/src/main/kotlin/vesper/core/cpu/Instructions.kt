@@ -43,6 +43,7 @@ object Opcode {
     const val BGTZL     = 0x17
     const val VFPU0     = 0x18
     const val VFPU1     = 0x19
+    const val VFPU3     = 0x1B
     const val LV_S      = 0x32
     const val VFPU4     = 0x34
     const val LVL_Q     = 0x35

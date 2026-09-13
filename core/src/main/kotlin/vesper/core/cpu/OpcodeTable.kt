@@ -62,6 +62,7 @@ object OpcodeTable {
         handlers[Opcode.COP1X] = InstructionHandler { _, _ -> }
         handlers[Opcode.VFPU0] = InstructionHandler(VectorUnit::executeArithmetic)
         handlers[Opcode.VFPU1] = InstructionHandler(VectorUnit::executeArithmetic)
+        handlers[Opcode.VFPU3] = InstructionHandler(VectorUnit::executeVfpu3)
         handlers[Opcode.LV_S] = InstructionHandler(VectorUnit::executeMemory)
         handlers[Opcode.VFPU4] = InstructionHandler(VectorUnit::executeVfpu4)
         handlers[Opcode.LVL_Q] = InstructionHandler(VectorUnit::executeMemory)

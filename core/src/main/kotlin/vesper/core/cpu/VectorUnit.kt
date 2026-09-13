@@ -79,6 +79,7 @@ object VectorUnit {
         when (val selector = (insn ushr 21) and 0x1F) {
             0 -> executeVfpu4Unary(cpu, insn)
             1 -> executeVfpu7(cpu, insn)
+            2 -> executeVfpu9(cpu, insn)
             in 16..19 -> executeVf2i(cpu, insn, selector)
             20 -> executeVi2f(cpu, insn)
             else -> cpu.raiseException(CpuException.ReservedInstruction)
@@ -222,6 +223,60 @@ object VectorUnit {
         }
     }
 
+    fun executeVfpu3(cpu: Cpu, insn: Int) {
+        val operation = (insn ushr 23) and 7
+        val state = cpu.state
+        val size = vectorSize(insn)
+        val source = readVector(state, instructionVs(insn), size, sourcePrefix)
+        val target = readVector(state, instructionVt(insn), size, targetPrefix)
+        val result = FloatArray(size)
+        when (operation) {
+            2 -> for (lane in 0 until size) result[lane] = minOf(source[lane], target[lane])
+            3 -> for (lane in 0 until size) result[lane] = maxOf(source[lane], target[lane])
+            5 -> for (lane in 0 until size) {
+                result[lane] = when {
+                    source[lane].isNaN() || target[lane].isNaN() -> 0f
+                    source[lane] > target[lane] -> 1f
+                    source[lane] < target[lane] -> -1f
+                    else -> 0f
+                }
+            }
+            6 -> for (lane in 0 until size) {
+                result[lane] = if (source[lane].isNaN() || target[lane].isNaN()) 0f
+                else if (source[lane] >= target[lane]) 1f else 0f
+            }
+            7 -> for (lane in 0 until size) {
+                result[lane] = if (source[lane].isNaN() || target[lane].isNaN()) 0f
+                else if (source[lane] < target[lane]) 1f else 0f
+            }
+            else -> {
+                cpu.raiseException(CpuException.ReservedInstruction)
+                return
+            }
+        }
+        writeVector(state, instructionVd(insn), size, result)
+        consumePrefixes(state)
+    }
+
+    private fun executeVfpu9(cpu: Cpu, insn: Int) {
+        val state = cpu.state
+        val size = vectorSize(insn)
+        when (instructionRt(insn)) {
+            6, 7 -> {
+                val source = readVector(state, instructionVs(insn), size, sourcePrefix)
+                var sum = 0f
+                for (lane in 0 until size) sum += source[lane]
+                val value = if (instructionRt(insn) == 7) sum / size else sum
+                writeVector(state, instructionVd(insn), 1, floatArrayOf(value))
+            }
+            else -> {
+                cpu.raiseException(CpuException.ReservedInstruction)
+                return
+            }
+        }
+        consumePrefixes(state)
+    }
+
     private fun executeVfpu4Unary(cpu: Cpu, insn: Int) {
         val operation = instructionRt(insn)
         val size = vectorSize(insn)
@@ -281,7 +336,7 @@ object VectorUnit {
 
     private fun unary(operation: Int, value: Float): Float = when (operation) {
         0, 1, 2 -> value
-        4 -> value.coerceIn(0f, 1f)
+        4 -> if (value <= 0f) 0f else if (value > 1f) 1f else value
         5 -> value.coerceIn(-1f, 1f)
         16 -> 1f / value
         17 -> 1f / kotlin.math.sqrt(value)
@@ -470,7 +525,7 @@ object VectorUnit {
             if (applyDestinationPrefix && (prefix and (1 shl (8 + lane))) != 0) continue
             val saturation = if (applyDestinationPrefix) (prefix ushr (lane * 2)) and 3 else 0
             state.vpr[registers[lane]] = when (saturation) {
-                1 -> values[lane].coerceIn(0f, 1f)
+                1 -> if (values[lane] <= 0f) 0f else if (values[lane] > 1f) 1f else values[lane]
                 3 -> values[lane].coerceIn(-1f, 1f)
                 else -> values[lane]
             }
