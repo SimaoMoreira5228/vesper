@@ -127,7 +127,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0x26D7A24A, "sceRtcTickAddHours") { _, _ -> 0 }
     register(0x27ACC20B, "sceVaudio_27ACC20B") { _, _ -> 0 }
     register(0x27C4594C, "sceRtcGetTime_t") { _, _ -> 0 }
-    register(0x27CC57F0, "sceKernelLibcTime") { _, _ -> 0 }
     register(0x27F3292C, "scePowerBatteryUpdateInfo") { _, _ -> 0 }
     register(0x27F6E642, "sceFontGetNumFontList") { _, _ -> 0 }
     register(0x281928A9, "sceNetTerm") { _, _ -> 0 }

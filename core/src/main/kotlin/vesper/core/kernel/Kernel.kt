@@ -382,7 +382,21 @@ class Kernel(
         syscallTable.register(Nids.KERNEL_DCACHE_WRITEBACK_RANGE, "sceKernelDcacheWritebackRange") { _, _ -> 0 }
         syscallTable.register(Nids.KERNEL_DCACHE_WRITEBACK_INV_RANGE, "sceKernelDcacheWritebackInvalidateRange") { _, _ -> 0 }
         syscallTable.register(Nids.KERNEL_ICACHE_INVALIDATE_RANGE, "sceKernelIcacheInvalidateRange") { _, _ -> 0 }
-        syscallTable.register(Nids.KERNEL_LIBC_CLOCK, "sceKernelLibcClock") { _, _ -> 0 }
+        syscallTable.register(Nids.KERNEL_LIBC_CLOCK, "sceKernelLibcClock") { kernel, _ ->
+            (kernel.timer.nowMicros() and 0xFFFFFFFFL).toInt()
+        }
+        syscallTable.register(Nids.KERNEL_LIBC_TIME, "sceKernelLibcTime") { kernel, cpu ->
+            val timePtr = cpu.state.gpr(4)
+            val time = (System.currentTimeMillis() / 1000L).toInt()
+            when {
+                timePtr == 0 -> time
+                !kernel.memory.contains(Address(timePtr.toUInt())) -> 0
+                else -> {
+                    kernel.memory.write32(Address(timePtr.toUInt()), time)
+                    time
+                }
+            }
+        }
         syscallTable.register(Nids.KERNEL_LIBC_GETTIMEOFDAY, "sceKernelLibcGettimeofday") { _, _ -> 0 }
 
         syscallTable.register(Nids.KERNEL_GET_SYSTEM_TIME_WIDE, "sceKernelGetSystemTimeWide") { kernel, _ ->
