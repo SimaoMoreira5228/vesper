@@ -487,7 +487,7 @@ class Kernel(
                 }
 
             val kemResult = kernel.kemulator.handleDevctl(name, cmd, inData, inLen, outData)
-            if (cmd == 2 && inData != null) {
+            if (kemResult < 0 && cmd == 2 && inData != null) {
                 val end = inData.indexOf(0).let { if (it < 0) inData.size else it }
                 if (end > 0) {
                     kernel.kemulator.capture(inData.sliceArray(0 until end).decodeToString())
