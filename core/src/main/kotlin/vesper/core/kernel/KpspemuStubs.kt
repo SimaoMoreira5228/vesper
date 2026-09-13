@@ -196,7 +196,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0x37295ED8, "sceMpegRingbufferConstruct") { _, _ -> 0 }
     register(0x37FB5C42, "sceKernelGetGPI") { _, _ -> 0 }
     register(0x381BD9E7, "sceImposeHomeButton") { _, _ -> 0 }
-    register(0x383F7BCC, "sceKernelTerminateDeleteThread") { _, _ -> 0 }
     register(0x38553111, "sceAudioSRCChReserve") { _, _ -> 0 }
     register(0x386369BB, "LoadCoreForKernel_386369BB") { _, _ -> 0 }
     register(0x39461B4D, "sceRegFlushRegistry") { _, _ -> 0 }
@@ -612,7 +611,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0xBAFA3DF0.toInt(), "scePowerGetCallbackMode") { _, _ -> 0 }
     register(0xBB3F5DEC.toInt(), "sceImpose_BB3F5DEC") { _, _ -> 0 }
     register(0xBB8E7FE6.toInt(), "sceFontOpenUserMemory") { _, _ -> 0 }
-    register(0xBC6FEBC5.toInt(), "sceKernelReferSemaStatus") { _, _ -> 0 }
     register(0xBC75D85B.toInt(), "sceFontGetFontList") { _, _ -> 0 }
     register(0xBD11B7C2.toInt(), "__sceSasGetGrain") { _, _ -> 0 }
     register(0xBD2BDE07.toInt(), "sceUmdUnRegisterUMDCallBack") { _, _ -> 0 }

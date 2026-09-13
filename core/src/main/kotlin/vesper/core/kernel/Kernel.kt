@@ -30,6 +30,13 @@ class Kernel(
     val importMap = mutableMapOf<Address, Int>()
     val bootThreadExit: Address = Address(Scheduler.THREAD_EXIT_TRAMPOLINE)
 
+    private val errorIllegalArg = 0x80020001.toInt()
+    private val errorIllegalAddr = 0x800200D3.toInt()
+    private val errorIllegalPriority = 0x80020193.toInt()
+    private val errorIllegalStackSize = 0x80020194.toInt()
+    private val errorNoMemory = 0x80020190.toInt()
+    private val maxThreadStack = 0x10000000u
+
     fun registerImport(stubAddr: Address, nid: Int) {
         importMap[stubAddr] = nid
     }
@@ -96,18 +103,24 @@ class Kernel(
         }
 
         syscallTable.register(Nids.THREAD_CREATE, "sceKernelCreateThread") { kernel, cpu ->
-            val name = readStringFromMemory(kernel.memory, Address(cpu.state.gpr(4).toUInt()))
+            val namePtr = cpu.state.gpr(4)
             val entry = cpu.state.gpr(5)
             val priority = cpu.state.gpr(6)
             val stackSize = cpu.state.gpr(7)
             val attr = cpu.state.gpr(8)
-            kernel.scheduler.createThread(
-                name = name,
-                entryPoint = Address(entry.toUInt()),
-                priority = priority and 0xFF,
-                stackSize = stackSize,
-                attr = attr,
-            )
+            val error = validateThreadCreate(namePtr, entry, priority, stackSize)
+            if (error != 0) {
+                error
+            } else {
+                val name = readStringFromMemory(kernel.memory, Address(namePtr.toUInt()))
+                kernel.scheduler.createThread(
+                    name = name,
+                    entryPoint = Address(entry.toUInt()),
+                    priority = priority and 0xFF,
+                    stackSize = stackSize,
+                    attr = attr,
+                )
+            }
         }
 
         syscallTable.register(Nids.THREAD_START, "sceKernelStartThread") { kernel, cpu ->
@@ -143,6 +156,21 @@ class Kernel(
 
         syscallTable.register(Nids.THREAD_TERMINATE, "sceKernelTerminateThread") { kernel, cpu ->
             kernel.scheduler.terminateThread(cpu.state.gpr(4))
+        }
+
+        syscallTable.register(Nids.THREAD_TERMINATE_DELETE, "sceKernelTerminateDeleteThread") { kernel, cpu ->
+            val threadId = cpu.state.gpr(4)
+            kernel.scheduler.terminateThread(threadId)
+            kernel.scheduler.deleteThread(threadId)
+            0
+        }
+
+        syscallTable.register(Nids.THREAD_GET_CURRENT_PRIORITY, "sceKernelGetThreadCurrentPriority") { kernel, _ ->
+            kernel.scheduler.currentThread()?.priority ?: 0
+        }
+
+        syscallTable.register(Nids.THREAD_GET_EXIT_STATUS, "sceKernelGetThreadExitStatus") { kernel, cpu ->
+            kernel.scheduler.getThread(cpu.state.gpr(4))?.exitStatus ?: -1
         }
 
         syscallTable.register(Nids.THREAD_EXIT_DELETE, "sceKernelExitDeleteThread") { kernel, cpu ->
@@ -446,6 +474,21 @@ class Kernel(
             val semaId = cpu.state.gpr(4)
             kernel.synchPrimitives.pollSemaphore(semaId)
         }
+    }
+
+    private fun validateThreadCreate(
+        namePtr: Int,
+        entry: Int,
+        priority: Int,
+        stackSize: Int,
+    ): Int {
+        if (namePtr == 0) return errorIllegalArg
+        if (entry and 0x3 != 0) return errorIllegalAddr
+        if (priority < 8 || priority > 0x77) return errorIllegalPriority
+        val stack = stackSize.toUInt()
+        if (stack < 0x200u) return errorIllegalStackSize
+        if (stack > maxThreadStack) return errorNoMemory
+        return 0
     }
 
     private fun readStringFromMemory(memory: IMemoryBus, addr: Address): String {

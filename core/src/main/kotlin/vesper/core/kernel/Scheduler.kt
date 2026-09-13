@@ -23,6 +23,7 @@ data class KThread(
     var entryPoint: Address,
     var savedState: CpuState,
     var stackBase: Int,
+    var stackTop: Int,
     var stackSize: Int,
     var attr: Int,
     var gpReg: Int = 0,
@@ -74,6 +75,7 @@ class Scheduler(
             entryPoint = Address.ZERO,
             savedState = saved,
             stackBase = MAIN_STACK_TOP,
+            stackTop = MAIN_STACK_TOP + STACK_GAP,
             stackSize = STACK_GAP,
             attr = 0,
         )
@@ -108,8 +110,10 @@ class Scheduler(
             entryPoint = entryPoint,
             savedState = saved,
             stackBase = stackBase,
+            stackTop = stackTop,
             stackSize = stackSize,
             attr = attr,
+            gpReg = cpu.state.gpr(28),
         )
         return id
     }
@@ -118,19 +122,25 @@ class Scheduler(
         val thread = threads[threadId] ?: return -1
         if (thread.status != ThreadStatus.Dormant) return -1
 
+        val saved = thread.savedState
+        saved.reset(thread.entryPoint)
+        saved.setGpr(31, THREAD_EXIT_TRAMPOLINE.toInt())
+        saved.setGpr(29, thread.stackTop - 16)
+        cpu.memory.writeBytes(Address(thread.stackBase.toUInt()), ByteArray(thread.stackTop - thread.stackBase) { 0xFF.toByte() })
         if (userDataLength > 0 && userDataPtr != 0) {
-            val copyAddress = thread.stackBase + thread.stackSize - ARG_COPY_OFFSET
+            val copyAddress = thread.stackTop - ARG_COPY_OFFSET
             val data = cpu.memory.readBytes(Address(userDataPtr.toUInt()), userDataLength)
             cpu.memory.writeBytes(Address(copyAddress.toUInt()), data)
-            thread.savedState.setGpr(4, userDataLength)
-            thread.savedState.setGpr(5, copyAddress)
-            thread.savedState.setGpr(29, (copyAddress - 16) and 0xFFFFFFF0.toInt())
+            saved.setGpr(4, userDataLength)
+            saved.setGpr(5, copyAddress)
+            saved.setGpr(29, (copyAddress - 16) and 0xFFFFFFF0.toInt())
         } else {
-            thread.savedState.setGpr(4, 0)
-            thread.savedState.setGpr(5, 0)
+            saved.setGpr(4, 0)
+            saved.setGpr(5, 0)
         }
-        thread.savedState.setGpr(28, gp)
+        saved.setGpr(28, gp)
         thread.gpReg = gp
+        thread.exitStatus = THREAD_TERMINATED_ERROR
         makeReady(threadId)
         reschedule()
         return 0

@@ -68,6 +68,8 @@ class KernelIntegrationTest : StringSpec({
         cpu.kernel = kernel
 
         cpu.state.setGpr(2, Nids.THREAD_CREATE)
+        mem.writeBytes(Address(0x08800000u), "test\u0000".encodeToByteArray())
+        cpu.state.setGpr(4, 0x08800000)
         cpu.state.setGpr(5, 0x08801000)
         cpu.state.setGpr(6, 0x10)
         cpu.state.setGpr(7, 0x1000)
@@ -86,6 +88,8 @@ class KernelIntegrationTest : StringSpec({
         cpu.kernel = kernel
 
         cpu.state.setGpr(2, Nids.THREAD_CREATE)
+        mem.writeBytes(Address(0x08800000u), "test\u0000".encodeToByteArray())
+        cpu.state.setGpr(4, 0x08800000)
         cpu.state.setGpr(5, 0x08801000)
         cpu.state.setGpr(6, 0x10)
         cpu.state.setGpr(7, 0x1000)
