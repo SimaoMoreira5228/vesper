@@ -48,6 +48,7 @@ object Opcode {
     const val LV_Q      = 0x36
     const val VFPU5     = 0x37
     const val SV_S      = 0x3A
+    const val VFPU6     = 0x3C
     const val SV_Q      = 0x3E
 }
 

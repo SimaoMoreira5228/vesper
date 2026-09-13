@@ -2,6 +2,7 @@ package vesper.core.cpu
 
 import vesper.core.memory.Address
 import kotlin.math.absoluteValue
+import kotlin.math.pow
 
 object VectorUnit {
     private const val sourcePrefix = 0
@@ -58,14 +59,104 @@ object VectorUnit {
 
     fun executeVfpu4(cpu: Cpu, insn: Int) {
         val operation = instructionRt(insn)
-        if (operation != 0) {
-            cpu.raiseException(CpuException.ReservedInstruction)
-            return
-        }
         val size = vectorSize(insn)
-        val values = readVector(cpu.state, instructionVs(insn), size, sourcePrefix)
-        writeVector(cpu.state, instructionVd(insn), size, values)
-        consumePrefixes(cpu.state)
+        val state = cpu.state
+        when (operation) {
+            0, 1, 2, 4, 5, 16, 17, 18, 19, 20, 21, 22, 23, 24, 26, 28 -> {
+                val source = readVector(state, instructionVs(insn), size, sourcePrefix)
+                val result = FloatArray(size) { lane -> unary(operation, source[lane]) }
+                writeVector(state, instructionVd(insn), size, result)
+            }
+            3 -> writeIdentity(state, instructionVd(insn))
+            6 -> writeVector(state, instructionVd(insn), size, FloatArray(size) { 0f })
+            7 -> writeVector(state, instructionVd(insn), size, FloatArray(size) { 1f })
+            else -> {
+                cpu.raiseException(CpuException.ReservedInstruction)
+                return
+            }
+        }
+        consumePrefixes(state)
+    }
+
+    private fun unary(operation: Int, value: Float): Float = when (operation) {
+        0, 1, 2 -> value
+        4 -> value.coerceIn(0f, 1f)
+        5 -> value.coerceIn(-1f, 1f)
+        16 -> 1f / value
+        17 -> 1f / kotlin.math.sqrt(value)
+        18 -> kotlin.math.sin(value * (kotlin.math.PI.toFloat() / 180f))
+        19 -> kotlin.math.cos(value * (kotlin.math.PI.toFloat() / 180f))
+        20 -> 2f.pow(value)
+        21 -> kotlin.math.log2(value)
+        22 -> kotlin.math.sqrt(value.absoluteValue)
+        23 -> kotlin.math.asin(value) * (180f / kotlin.math.PI.toFloat())
+        24 -> -1f / value
+        26 -> -kotlin.math.sin(value * (kotlin.math.PI.toFloat() / 180f))
+        28 -> 2f.pow(-value)
+        else -> value
+    }
+
+    private fun writeIdentity(state: CpuState, register: Int) {
+        val matrix = (register ushr 2) and 7
+        val base = matrix * 4
+        for (row in 0 until 4) {
+            for (column in 0 until 4) {
+                state.vpr[base + column + row * 32] = if (row == column) 1f else 0f
+            }
+        }
+    }
+
+    fun executeVfpu6(cpu: Cpu, insn: Int) {
+        val operation = instructionRt(insn)
+        val side = vectorSize(insn)
+        val state = cpu.state
+        when (operation) {
+            in 0..3 -> {
+                val source = readMatrix(state, instructionVs(insn))
+                val target = readMatrix(state, instructionVt(insn))
+                val result = FloatArray(16)
+                for (row in 0 until side) {
+                    for (column in 0 until side) {
+                        val lanes = if (row == side - 1 && column == side - 1) 4 else side
+                        var sum = 0f
+                        for (c in 0 until lanes) sum += source[column * 4 + c] * target[row * 4 + c]
+                        result[row * 4 + column] = sum
+                    }
+                }
+                writeMatrix(state, instructionVd(insn), result)
+            }
+            in 16..19 -> {
+                val source = readMatrix(state, instructionVs(insn))
+                val scale = readVector(state, instructionVt(insn), 1, targetPrefix)
+                val result = FloatArray(16)
+                for (row in 0 until side) {
+                    for (column in 0 until side) {
+                        val factor = if (row == side - 1) scale[column] else scale[0]
+                        result[row * 4 + column] = source[row * 4 + column] * factor
+                    }
+                }
+                writeMatrix(state, instructionVd(insn), result)
+            }
+            else -> {
+                cpu.raiseException(CpuException.ReservedInstruction)
+                return
+            }
+        }
+        consumePrefixes(state)
+    }
+
+    private fun readMatrix(state: CpuState, register: Int): FloatArray {
+        val base = ((register ushr 2) and 7) * 4
+        return FloatArray(16) { index ->
+            state.vpr[base + (index % 4) + (index / 4) * 32]
+        }
+    }
+
+    private fun writeMatrix(state: CpuState, register: Int, values: FloatArray) {
+        val base = ((register ushr 2) and 7) * 4
+        for (index in 0 until 16) {
+            state.vpr[base + (index % 4) + (index / 4) * 32] = values[index]
+        }
     }
 
     fun executeArithmetic(cpu: Cpu, insn: Int) {
