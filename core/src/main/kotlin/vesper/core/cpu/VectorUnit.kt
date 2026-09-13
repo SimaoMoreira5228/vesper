@@ -78,9 +78,147 @@ object VectorUnit {
     fun executeVfpu4(cpu: Cpu, insn: Int) {
         when (val selector = (insn ushr 21) and 0x1F) {
             0 -> executeVfpu4Unary(cpu, insn)
+            1 -> executeVfpu7(cpu, insn)
             in 16..19 -> executeVf2i(cpu, insn, selector)
             20 -> executeVi2f(cpu, insn)
             else -> cpu.raiseException(CpuException.ReservedInstruction)
+        }
+    }
+
+    private fun executeVfpu7(cpu: Cpu, insn: Int) {
+        val state = cpu.state
+        when (val index = instructionRt(insn)) {
+            18 -> convertFloatToHalf(state, insn)
+            19 -> convertHalfToFloat(state, insn)
+            in 24..27 -> convertColorToInt(state, insn, index - 24)
+            in 28..31 -> convertIntToColor(state, insn, index - 28)
+            else -> cpu.raiseException(CpuException.ReservedInstruction)
+        }
+        consumePrefixes(state)
+    }
+
+    private fun convertColorToInt(state: CpuState, insn: Int, mode: Int) {
+        val size = vectorSize(insn)
+        val source = readVector(state, instructionVs(insn), size, sourcePrefix)
+        if (mode <= 1) {
+            val value = source[0].toRawBits()
+            val result = FloatArray(4)
+            if (mode == 1) {
+                result[0] = Float.fromBits((value and 0xFF) shl 24)
+                result[1] = Float.fromBits((value and 0xFF00) shl 16)
+                result[2] = Float.fromBits((value and 0xFF0000) shl 8)
+                result[3] = Float.fromBits(value and 0xFF000000.toInt())
+            } else {
+                var shifted = value
+                for (lane in 0 until 4) {
+                    result[lane] = Float.fromBits(((shifted and 0xFF) * 0x01010101) ushr 1)
+                    shifted = shifted ushr 8
+                }
+            }
+            writeVector(state, instructionVd(insn), 4, result)
+        } else {
+            val elements = if (size == 1) 1 else 2
+            val result = FloatArray(4)
+            for (i in 0 until elements) {
+                val value = source[i].toRawBits()
+                result[i * 2] = if (mode == 3) Float.fromBits((value and 0xFFFF) shl 16)
+                else Float.fromBits((value and 0xFFFF) shl 15)
+                result[i * 2 + 1] = if (mode == 3) Float.fromBits(value and 0xFFFF0000.toInt())
+                else Float.fromBits((value and 0xFFFF0000.toInt()) ushr 1)
+            }
+            writeVector(state, instructionVd(insn), 4, result)
+        }
+    }
+
+    private fun convertIntToColor(state: CpuState, insn: Int, mode: Int) {
+        val size = vectorSize(insn)
+        val source = readVector(state, instructionVs(insn), 4, null)
+        if (mode <= 1) {
+            var packed = 0
+            for (i in 0 until 4) {
+                val value = source[i].toRawBits()
+                val component = if (mode == 1) value ushr 24 else (if (value < 0) 0 else value ushr 23) and 0xFF
+                packed = packed or ((component and 0xFF) shl (i * 8))
+            }
+            writeVector(state, instructionVd(insn), 4, floatArrayOf(Float.fromBits(packed), 0f, 0f, 0f))
+        } else {
+            val elements = (size + 1) / 2
+            val result = FloatArray(4)
+            for (i in 0 until elements) {
+                val low = source[i * 2].toRawBits()
+                val high = source[i * 2 + 1].toRawBits()
+                val packed = if (mode == 3) {
+                    (low ushr 16) or ((high ushr 16) shl 16)
+                } else {
+                    ((if (low < 0) 0 else low ushr 15) and 0xFFFF) or
+                        (((if (high < 0) 0 else high ushr 15) and 0xFFFF) shl 16)
+                }
+                result[i] = Float.fromBits(packed)
+            }
+            writeVector(state, instructionVd(insn), 4, result)
+        }
+    }
+
+    private fun convertFloatToHalf(state: CpuState, insn: Int) {
+        val size = vectorSize(insn)
+        val source = readVector(state, instructionVs(insn), size, sourcePrefix)
+        if (size <= 2) {
+            val packed = (floatToHalf(source[0]) and 0xFFFF) or ((floatToHalf(source.getOrElse(1) { 0f }) and 0xFFFF) shl 16)
+            writeVector(state, instructionVd(insn), 1, floatArrayOf(Float.fromBits(packed)))
+        } else {
+            val low = (floatToHalf(source[0]) and 0xFFFF) or ((floatToHalf(source[1]) and 0xFFFF) shl 16)
+            val high = (floatToHalf(source[2]) and 0xFFFF) or ((floatToHalf(source[3]) and 0xFFFF) shl 16)
+            writeVector(state, instructionVd(insn), 2, floatArrayOf(Float.fromBits(low), Float.fromBits(high)))
+        }
+    }
+
+    private fun convertHalfToFloat(state: CpuState, insn: Int) {
+        val size = vectorSize(insn)
+        val source = readVector(state, instructionVs(insn), size, sourcePrefix)
+        if (size == 1) {
+            val packed = source[0].toRawBits()
+            writeVector(
+                state,
+                instructionVd(insn),
+                2,
+                floatArrayOf(Float.fromBits(halfToFloat(packed and 0xFFFF).toRawBits()), Float.fromBits(halfToFloat(packed ushr 16).toRawBits())),
+            )
+        } else {
+            val low = source[0].toRawBits()
+            val high = source[1].toRawBits()
+            writeVector(
+                state,
+                instructionVd(insn),
+                4,
+                floatArrayOf(
+                    Float.fromBits(halfToFloat(low and 0xFFFF).toRawBits()),
+                    Float.fromBits(halfToFloat(low ushr 16).toRawBits()),
+                    Float.fromBits(halfToFloat(high and 0xFFFF).toRawBits()),
+                    Float.fromBits(halfToFloat(high ushr 16).toRawBits()),
+                ),
+            )
+        }
+    }
+
+    private fun floatToHalf(value: Float): Int {
+        val bits = value.toRawBits()
+        val sign = (bits ushr 16) and 0x8000
+        val exponent = (bits ushr 23) and 0xFF
+        var mantissa = bits and 0x7FFFFF
+        val halfExponent = exponent - 127 + 15
+        return when {
+            exponent == 0xFF && mantissa == 0 -> sign or 0x7C00
+            exponent == 0xFF -> sign or 0x7E00 or (mantissa and 0x3FF)
+            halfExponent >= 0x1F -> sign or 0x7C00
+            halfExponent <= 0 -> {
+                if (halfExponent < -10) {
+                    sign
+                } else {
+                    mantissa = mantissa or 0x800000
+                    sign or (mantissa ushr (14 - halfExponent))
+                }
+            }
+            else -> sign or (halfExponent shl 10) or (mantissa ushr 13)
         }
     }
 
