@@ -20,6 +20,7 @@ class PspAutotestSuiteTest : StringSpec({
         Case("display/display"),
         Case("hash/hash"),
         Case("loader/bss/bss"),
+        Case("malloc/malloc", maxInstructions = 400_000_000),
         Case("misc/testgp"),
         Case("misc/timeconv"),
         Case("rtc/rtc"),
