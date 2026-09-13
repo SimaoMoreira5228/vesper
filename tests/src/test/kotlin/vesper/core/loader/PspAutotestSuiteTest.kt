@@ -17,6 +17,7 @@ class PspAutotestSuiteTest : StringSpec({
         Case("cpu/icache/icache"),
         Case("string/string"),
         Case("threads/threads/threads"),
+        Case("threads/semaphores/semaphores"),
     )
 
     fun resource(path: String): ByteArray {

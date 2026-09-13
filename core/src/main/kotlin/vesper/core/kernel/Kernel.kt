@@ -96,15 +96,17 @@ class Kernel(
         }
 
         syscallTable.register(Nids.THREAD_CREATE, "sceKernelCreateThread") { kernel, cpu ->
+            val name = readStringFromMemory(kernel.memory, Address(cpu.state.gpr(4).toUInt()))
             val entry = cpu.state.gpr(5)
             val priority = cpu.state.gpr(6)
             val stackSize = cpu.state.gpr(7)
+            val attr = cpu.state.gpr(8)
             kernel.scheduler.createThread(
-                name = "thread_0x${entry.toString(16)}",
+                name = name,
                 entryPoint = Address(entry.toUInt()),
                 priority = priority and 0xFF,
                 stackSize = stackSize,
-                attr = 0,
+                attr = attr,
             )
         }
 
@@ -401,9 +403,18 @@ class Kernel(
         syscallTable.register(Nids.IO_DEVCtl, "sceIoDevctl", SyscallHandler(ioDevctlHandler))
 
         syscallTable.register(Nids.CREATE_SEMA, "sceKernelCreateSema") { kernel, cpu ->
+            val name = readStringFromMemory(kernel.memory, Address(cpu.state.gpr(4).toUInt()))
+            val attr = cpu.state.gpr(5)
             val initCount = cpu.state.gpr(6)
             val maxCount = cpu.state.gpr(7)
-            kernel.synchPrimitives.createSemaphore(initCount, maxCount)
+            kernel.synchPrimitives.createSemaphore(name, attr, initCount, maxCount)
+        }
+
+        syscallTable.register(Nids.REFER_SEMA_STATUS, "sceKernelReferSemaStatus") { kernel, cpu ->
+            val semaId = cpu.state.gpr(4)
+            val infoPtr = Address(cpu.state.gpr(5).toUInt())
+            kernel.synchPrimitives.referSemaphoreStatus(semaId, infoPtr, kernel.memory)
+            0
         }
 
         syscallTable.register(Nids.DELETE_SEMA, "sceKernelDeleteSema") { kernel, cpu ->

@@ -18,13 +18,15 @@ data class KThread(
     val id: Int,
     val name: String,
     var priority: Int,
+    val initPriority: Int,
     var status: ThreadStatus,
     var entryPoint: Address,
     var savedState: CpuState,
     var stackBase: Int,
     var stackSize: Int,
     var attr: Int,
-    var exitStatus: Int,
+    var gpReg: Int = 0,
+    var exitStatus: Int = Scheduler.THREAD_TERMINATED_ERROR,
     var waitQueue: MutableList<Int> = mutableListOf(),
 )
 
@@ -67,13 +69,13 @@ class Scheduler(
             id = id,
             name = "main",
             priority = MAIN_PRIORITY,
+            initPriority = MAIN_PRIORITY,
             status = ThreadStatus.Running,
             entryPoint = Address.ZERO,
             savedState = saved,
             stackBase = MAIN_STACK_TOP,
             stackSize = STACK_GAP,
             attr = 0,
-            exitStatus = 0,
         )
         currentThreadId = id
         return id
@@ -92,20 +94,22 @@ class Scheduler(
         saved.reset(entryPoint)
         saved.setGpr(31, THREAD_EXIT_TRAMPOLINE.toInt())
         val stackTop = nextStackTop
-        nextStackTop -= (stackSize + 0xFFF) and 0xFFFFF000.toInt()
+        val stackBase = stackTop - ((stackSize + 0xFFF) and 0xFFFFF000.toInt())
+        nextStackTop = stackBase
         saved.setGpr(29, stackTop - 16)
+        cpu.memory.writeBytes(Address(stackBase.toUInt()), ByteArray(stackTop - stackBase) { 0xFF.toByte() })
 
         threads[id] = KThread(
             id = id,
             name = name,
             priority = priority,
+            initPriority = priority,
             status = ThreadStatus.Dormant,
             entryPoint = entryPoint,
             savedState = saved,
-            stackBase = nextStackTop,
+            stackBase = stackBase,
             stackSize = stackSize,
             attr = attr,
-            exitStatus = 0,
         )
         return id
     }
@@ -114,9 +118,19 @@ class Scheduler(
         val thread = threads[threadId] ?: return -1
         if (thread.status != ThreadStatus.Dormant) return -1
 
-        thread.savedState.setGpr(4, userDataLength)
-        thread.savedState.setGpr(5, userDataPtr)
+        if (userDataLength > 0 && userDataPtr != 0) {
+            val copyAddress = thread.stackBase + thread.stackSize - ARG_COPY_OFFSET
+            val data = cpu.memory.readBytes(Address(userDataPtr.toUInt()), userDataLength)
+            cpu.memory.writeBytes(Address(copyAddress.toUInt()), data)
+            thread.savedState.setGpr(4, userDataLength)
+            thread.savedState.setGpr(5, copyAddress)
+            thread.savedState.setGpr(29, (copyAddress - 16) and 0xFFFFFFF0.toInt())
+        } else {
+            thread.savedState.setGpr(4, 0)
+            thread.savedState.setGpr(5, 0)
+        }
         thread.savedState.setGpr(28, gp)
+        thread.gpReg = gp
         makeReady(threadId)
         reschedule()
         return 0
@@ -223,8 +237,39 @@ class Scheduler(
 
     fun referThreadStatus(threadId: Int, statusPtr: Address, memory: IMemoryBus) {
         val thread = threads[threadId] ?: return
-        memory.write32(statusPtr, thread.status.hashCode())
-        memory.write32(statusPtr + 4, thread.priority)
+        memory.write32(statusPtr, THREAD_INFO_SIZE)
+        writeName(memory, statusPtr + 4, thread.name)
+        memory.write32(statusPtr + 0x24, thread.attr or KERNEL_ATTR_BITS)
+        memory.write32(statusPtr + 0x28, statusCode(thread.status))
+        memory.write32(statusPtr + 0x2C, thread.entryPoint.value.toInt())
+        memory.write32(statusPtr + 0x30, thread.stackBase)
+        memory.write32(statusPtr + 0x34, thread.stackSize)
+        memory.write32(statusPtr + 0x38, thread.gpReg)
+        memory.write32(statusPtr + 0x3C, thread.initPriority)
+        memory.write32(statusPtr + 0x40, thread.priority)
+        memory.write32(statusPtr + 0x44, 0)
+        memory.write32(statusPtr + 0x48, 0)
+        memory.write32(statusPtr + 0x4C, 0)
+        memory.write32(statusPtr + 0x50, thread.exitStatus)
+        memory.write32(statusPtr + 0x54, 0)
+        memory.write32(statusPtr + 0x58, 0)
+        memory.write32(statusPtr + 0x5C, 0)
+        memory.write32(statusPtr + 0x60, 0)
+        memory.write32(statusPtr + 0x64, 0)
+    }
+
+    private fun statusCode(status: ThreadStatus): Int = when (status) {
+        is ThreadStatus.Running -> 1
+        is ThreadStatus.Ready -> 2
+        is ThreadStatus.Waiting -> 4
+        is ThreadStatus.Suspended -> 8
+        is ThreadStatus.Dormant -> 16
+    }
+
+    private fun writeName(memory: IMemoryBus, ptr: Address, name: String) {
+        val bytes = ByteArray(32)
+        name.encodeToByteArray().copyInto(bytes, endIndex = minOf(name.length, 31))
+        memory.writeBytes(ptr, bytes)
     }
 
     private fun dispatchNext() {
@@ -286,6 +331,10 @@ class Scheduler(
         const val MAIN_PRIORITY = 0x20
         const val MAIN_STACK_TOP = 0x09F00000
         const val STACK_GAP = 0x00100000
+        const val THREAD_INFO_SIZE = 104
+        const val KERNEL_ATTR_BITS = 0x800000FF.toInt()
+        const val THREAD_TERMINATED_ERROR = 0x800201A2.toInt()
+        const val ARG_COPY_OFFSET = 0x100
         const val THREAD_EXIT_TRAMPOLINE = 0x09FF0000u
     }
 }

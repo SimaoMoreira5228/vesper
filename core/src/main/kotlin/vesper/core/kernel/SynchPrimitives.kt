@@ -1,11 +1,15 @@
 package vesper.core.kernel
 
 import vesper.common.Loggable
-import vesper.common.warn
+import vesper.core.IMemoryBus
+import vesper.core.memory.Address
 import kotlin.math.min
 
 data class KSemaphore(
     val id: Int,
+    val name: String,
+    val attr: Int,
+    val initialCount: Int,
     var count: Int,
     val maxCount: Int,
     val waitingThreads: MutableList<Pair<Int, Int>> = mutableListOf(),
@@ -29,27 +33,48 @@ class SynchPrimitives(
 ) : Loggable {
 
     override val tag: String get() = "SynchPrimitives"
-
     private var nextSemaId: Int = 1
     private var nextMutexId: Int = 1
     private var nextEventFlagId: Int = 1
+    private val semaInfoSize: Int = 56
+    private val unknownSema: Int = 0x80020199.toInt()
 
     private val semaphores = mutableMapOf<Int, KSemaphore>()
     private val mutexes = mutableMapOf<Int, KMutex>()
     private val eventFlags = mutableMapOf<Int, KEventFlag>()
 
-    fun createSemaphore(initialCount: Int, maxCount: Int): Int {
+    fun createSemaphore(name: String, attr: Int, initialCount: Int, maxCount: Int): Int {
         val id = nextSemaId++
         semaphores[id] = KSemaphore(
             id = id,
+            name = name,
+            attr = attr,
+            initialCount = initialCount.coerceIn(0, maxCount),
             count = initialCount.coerceIn(0, maxCount),
             maxCount = maxCount,
         )
         return id
     }
 
+    fun referSemaphoreStatus(semaId: Int, infoPtr: Address, memory: IMemoryBus) {
+        val sema = semaphores[semaId] ?: return
+        memory.write32(infoPtr, semaInfoSize)
+        writeName(memory, infoPtr + 4, sema.name)
+        memory.write32(infoPtr + 0x24, sema.attr)
+        memory.write32(infoPtr + 0x28, sema.initialCount)
+        memory.write32(infoPtr + 0x2C, sema.count)
+        memory.write32(infoPtr + 0x30, sema.maxCount)
+        memory.write32(infoPtr + 0x34, sema.waitingThreads.size)
+    }
+
+    private fun writeName(memory: IMemoryBus, ptr: Address, name: String) {
+        val bytes = ByteArray(32)
+        name.encodeToByteArray().copyInto(bytes, endIndex = minOf(name.length, 31))
+        memory.writeBytes(ptr, bytes)
+    }
+
     fun deleteSemaphore(semaId: Int): Int {
-        val sema = semaphores.remove(semaId) ?: return -1
+        val sema = semaphores.remove(semaId) ?: return unknownSema
         for ((tid, _) in sema.waitingThreads) {
             scheduler.makeReady(tid)
         }

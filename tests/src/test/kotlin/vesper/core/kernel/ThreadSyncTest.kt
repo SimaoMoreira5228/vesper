@@ -19,25 +19,25 @@ class ThreadSyncTest : StringSpec({
 
     "create semaphore with initial count" {
         val kernel = makeKernel()
-        val semaId = kernel.synchPrimitives.createSemaphore(5, 10)
+        val semaId = kernel.synchPrimitives.createSemaphore("s", 0, 5, 10)
         semaId.shouldBeGreaterThan(0)
     }
 
     "signal semaphore increments count" {
         val kernel = makeKernel()
-        val semaId = kernel.synchPrimitives.createSemaphore(1, 10)
+        val semaId = kernel.synchPrimitives.createSemaphore("s", 0, 1, 10)
         kernel.synchPrimitives.signalSemaphore(semaId, 1) shouldBe 0
     }
 
     "wait semaphore decrements count when available" {
         val kernel = makeKernel()
-        val semaId = kernel.synchPrimitives.createSemaphore(3, 10)
+        val semaId = kernel.synchPrimitives.createSemaphore("s", 0, 3, 10)
         kernel.synchPrimitives.waitSemaphore(semaId, 2, false) shouldBe 0
     }
 
     "poll semaphore returns success when available" {
         val kernel = makeKernel()
-        val semaId = kernel.synchPrimitives.createSemaphore(1, 10)
+        val semaId = kernel.synchPrimitives.createSemaphore("s", 0, 1, 10)
 
         kernel.synchPrimitives.pollSemaphore(semaId) shouldBe 0
         kernel.synchPrimitives.pollSemaphore(semaId) shouldBe -1
@@ -45,7 +45,7 @@ class ThreadSyncTest : StringSpec({
 
     "delete semaphore cleans up" {
         val kernel = makeKernel()
-        val semaId = kernel.synchPrimitives.createSemaphore(1, 10)
+        val semaId = kernel.synchPrimitives.createSemaphore("s", 0, 1, 10)
         kernel.synchPrimitives.deleteSemaphore(semaId) shouldBe 0
     }
 
