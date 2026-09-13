@@ -1,12 +1,10 @@
 package vesper.core.cpu
 
-import vesper.common.Logger
-import vesper.common.warn
-import vesper.core.cpu.Cpu.Companion.logTag
-
 object MultiplyDivide {
-
-    fun executeMult(cpu: Cpu, insn: Int) {
+    fun executeMult(
+        cpu: Cpu,
+        insn: Int,
+    ) {
         val rs = cpu.state.gpr(instructionRs(insn)).toLong()
         val rt = cpu.state.gpr(instructionRt(insn)).toLong()
         val result = rs * rt
@@ -14,7 +12,10 @@ object MultiplyDivide {
         cpu.state.hi = (result shr 32).toInt()
     }
 
-    fun executeMultu(cpu: Cpu, insn: Int) {
+    fun executeMultu(
+        cpu: Cpu,
+        insn: Int,
+    ) {
         val rs = cpu.state.gpr(instructionRs(insn)).toUInt().toLong()
         val rt = cpu.state.gpr(instructionRt(insn)).toUInt().toLong()
         val result = rs * rt
@@ -22,7 +23,10 @@ object MultiplyDivide {
         cpu.state.hi = (result shr 32).toInt()
     }
 
-    fun executeDiv(cpu: Cpu, insn: Int) {
+    fun executeDiv(
+        cpu: Cpu,
+        insn: Int,
+    ) {
         val rs = cpu.state.gpr(instructionRs(insn))
         val rt = cpu.state.gpr(instructionRt(insn))
         if (rt == 0) {
@@ -37,7 +41,10 @@ object MultiplyDivide {
         }
     }
 
-    fun executeDivu(cpu: Cpu, insn: Int) {
+    fun executeDivu(
+        cpu: Cpu,
+        insn: Int,
+    ) {
         val rs = cpu.state.gpr(instructionRs(insn)).toUInt()
         val rt = cpu.state.gpr(instructionRt(insn)).toUInt()
         if (rt == 0u) {
@@ -49,37 +56,61 @@ object MultiplyDivide {
         }
     }
 
-    fun executeMfhi(cpu: Cpu, insn: Int) {
+    fun executeMfhi(
+        cpu: Cpu,
+        insn: Int,
+    ) {
         cpu.state.setGpr(instructionRd(insn), cpu.state.hi)
     }
 
-    fun executeMflo(cpu: Cpu, insn: Int) {
+    fun executeMflo(
+        cpu: Cpu,
+        insn: Int,
+    ) {
         cpu.state.setGpr(instructionRd(insn), cpu.state.lo)
     }
 
-    fun executeMthi(cpu: Cpu, insn: Int) {
+    fun executeMthi(
+        cpu: Cpu,
+        insn: Int,
+    ) {
         cpu.state.hi = cpu.state.gpr(instructionRs(insn))
     }
 
-    fun executeMtlo(cpu: Cpu, insn: Int) {
+    fun executeMtlo(
+        cpu: Cpu,
+        insn: Int,
+    ) {
         cpu.state.lo = cpu.state.gpr(instructionRs(insn))
     }
 
-    fun executeSyscall(cpu: Cpu, insn: Int) {
+    fun executeSyscall(
+        cpu: Cpu,
+        insn: Int,
+    ) {
         cpu.raiseException(CpuException.Syscall)
     }
 
-    fun executeBreak(cpu: Cpu, insn: Int) {
+    fun executeBreak(
+        cpu: Cpu,
+        insn: Int,
+    ) {
         cpu.raiseException(CpuException.Breakpoint)
     }
 
-    fun executeMul(cpu: Cpu, insn: Int) {
+    fun executeMul(
+        cpu: Cpu,
+        insn: Int,
+    ) {
         val rs = cpu.state.gpr(instructionRs(insn)).toLong()
         val rt = cpu.state.gpr(instructionRt(insn)).toLong()
         cpu.state.setGpr(instructionRd(insn), (rs * rt).toInt())
     }
 
-    fun executeMadd(cpu: Cpu, insn: Int) {
+    fun executeMadd(
+        cpu: Cpu,
+        insn: Int,
+    ) {
         val rs = cpu.state.gpr(instructionRs(insn)).toLong()
         val rt = cpu.state.gpr(instructionRt(insn)).toLong()
         val acc = (cpu.state.hi.toUInt().toLong() shl 32) or (cpu.state.lo.toUInt().toLong())
@@ -88,7 +119,10 @@ object MultiplyDivide {
         cpu.state.hi = (result shr 32).toInt()
     }
 
-    fun executeMaddu(cpu: Cpu, insn: Int) {
+    fun executeMaddu(
+        cpu: Cpu,
+        insn: Int,
+    ) {
         val rs = cpu.state.gpr(instructionRs(insn)).toUInt().toLong()
         val rt = cpu.state.gpr(instructionRt(insn)).toUInt().toLong()
         val acc = (cpu.state.hi.toUInt().toLong() shl 32) or (cpu.state.lo.toUInt().toLong())
@@ -97,7 +131,10 @@ object MultiplyDivide {
         cpu.state.hi = (result shr 32).toInt()
     }
 
-    fun executeMsub(cpu: Cpu, insn: Int) {
+    fun executeMsub(
+        cpu: Cpu,
+        insn: Int,
+    ) {
         val rs = cpu.state.gpr(instructionRs(insn)).toLong()
         val rt = cpu.state.gpr(instructionRt(insn)).toLong()
         val acc = (cpu.state.hi.toUInt().toLong() shl 32) or cpu.state.lo.toUInt().toLong()
@@ -106,7 +143,10 @@ object MultiplyDivide {
         cpu.state.hi = (result shr 32).toInt()
     }
 
-    fun executeMsubu(cpu: Cpu, insn: Int) {
+    fun executeMsubu(
+        cpu: Cpu,
+        insn: Int,
+    ) {
         val rs = cpu.state.gpr(instructionRs(insn)).toUInt().toLong()
         val rt = cpu.state.gpr(instructionRt(insn)).toUInt().toLong()
         val acc = (cpu.state.hi.toUInt().toLong() shl 32) or cpu.state.lo.toUInt().toLong()

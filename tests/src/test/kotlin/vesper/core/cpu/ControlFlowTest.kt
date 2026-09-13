@@ -15,27 +15,45 @@ class ControlFlowTest : StringSpec({
         return c
     }
 
-    fun rType(rs: Int, rt: Int, rd: Int, funct: Int): Int {
+    fun rType(
+        rs: Int,
+        rt: Int,
+        rd: Int,
+        funct: Int,
+    ): Int {
         return (rs shl 21) or (rt shl 16) or (rd shl 11) or funct
     }
 
-    fun iType(opcode: Int, rs: Int, rt: Int, imm: Int): Int {
+    fun iType(
+        opcode: Int,
+        rs: Int,
+        rt: Int,
+        imm: Int,
+    ): Int {
         return (opcode shl 26) or (rs shl 21) or (rt shl 16) or (imm and 0xFFFF)
     }
 
-    fun jType(opcode: Int, target: Int): Int {
+    fun jType(
+        opcode: Int,
+        target: Int,
+    ): Int {
         return (opcode shl 26) or (target and 0x3FFFFFF)
     }
 
-    fun writeMem(mem: MemoryBus, addr: UInt, value: Int) {
+    fun writeMem(
+        mem: MemoryBus,
+        addr: UInt,
+        value: Int,
+    ) {
         mem.write32(Address(addr), value)
     }
 
     "BEQ branches when equal" {
-        val c = cpu {
-            state.setGpr(1, 5)
-            state.setGpr(2, 5)
-        }
+        val c =
+            cpu {
+                state.setGpr(1, 5)
+                state.setGpr(2, 5)
+            }
         val startPc = c.state.pc
         OpcodeTable.dispatch(c, iType(Opcode.BEQ, 1, 2, 4))
 
@@ -44,19 +62,21 @@ class ControlFlowTest : StringSpec({
     }
 
     "BEQ falls through when not equal" {
-        val c = cpu {
-            state.setGpr(1, 5)
-            state.setGpr(2, 6)
-        }
+        val c =
+            cpu {
+                state.setGpr(1, 5)
+                state.setGpr(2, 6)
+            }
         OpcodeTable.dispatch(c, iType(Opcode.BEQ, 1, 2, 4))
         c.state.inDelaySlot shouldBe false
     }
 
     "BNE branches when not equal" {
-        val c = cpu {
-            state.setGpr(1, 5)
-            state.setGpr(2, 6)
-        }
+        val c =
+            cpu {
+                state.setGpr(1, 5)
+                state.setGpr(2, 6)
+            }
         val startPc = c.state.pc
         OpcodeTable.dispatch(c, iType(Opcode.BNE, 1, 2, 4))
 
@@ -65,10 +85,11 @@ class ControlFlowTest : StringSpec({
     }
 
     "BEQL skips its delay slot when not taken" {
-        val c = cpu {
-            state.setGpr(1, 1)
-            state.setGpr(2, 2)
-        }
+        val c =
+            cpu {
+                state.setGpr(1, 1)
+                state.setGpr(2, 2)
+            }
         writeMem(c.memory as MemoryBus, 0x08800000u, iType(Opcode.BEQL, 1, 2, 4))
         writeMem(c.memory as MemoryBus, 0x08800004u, iType(Opcode.ADDIU, 0, 3, 1))
 
@@ -159,10 +180,11 @@ class ControlFlowTest : StringSpec({
     }
 
     "Delay slot executes branch then commits" {
-        val c = cpu {
-            state.setGpr(1, 1)
-            state.setGpr(2, 1)
-        }
+        val c =
+            cpu {
+                state.setGpr(1, 1)
+                state.setGpr(2, 1)
+            }
         writeMem(c.memory as MemoryBus, 0x08800000u, iType(Opcode.BEQ, 1, 2, 8))
         writeMem(c.memory as MemoryBus, 0x08800004u, 0)
 
@@ -178,10 +200,11 @@ class ControlFlowTest : StringSpec({
     }
 
     "Back-to-back branch and branch" {
-        val c = cpu {
-            state.setGpr(1, 1)
-            state.setGpr(2, 1)
-        }
+        val c =
+            cpu {
+                state.setGpr(1, 1)
+                state.setGpr(2, 1)
+            }
         c.state.pc = Address(0x08800000u)
         writeMem(c.memory as MemoryBus, 0x08800000u, iType(Opcode.BEQ, 1, 2, 8))
         writeMem(c.memory as MemoryBus, 0x08800004u, 0)

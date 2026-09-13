@@ -11,7 +11,10 @@ class IoRegisterFile {
 
     fun read32(offset: UInt): Int = registers.getOrElse(offset.toInt() shr 2) { 0u }.toInt()
 
-    fun write32(offset: UInt, value: Int) {
+    fun write32(
+        offset: UInt,
+        value: Int,
+    ) {
         val idx = offset.toInt() shr 2
         if (idx in registers.indices) registers[idx] = value.toUInt()
     }
@@ -21,7 +24,10 @@ class IoRegisterFile {
         return (word shr ((offset and 3) * 8)) and 0xFF
     }
 
-    fun write8(offset: Int, value: Int) {
+    fun write8(
+        offset: Int,
+        value: Int,
+    ) {
         val idx = offset shr 2
         if (idx !in registers.indices) return
         val shift = (offset and 3) * 8
@@ -36,7 +42,6 @@ class MemoryBus(
     private val scratchpad: ByteArray = ByteArray(0x4000),
     private val ioRegisters: IoRegisterFile = IoRegisterFile(),
 ) : IMemoryBus {
-
     override fun contains(address: Address): Boolean = regionOf(address) != MemRegion.UNMAPPED
 
     override fun read8(address: Address): Int {
@@ -72,7 +77,10 @@ class MemoryBus(
         return (b0 or (b1 shl 8) or (b2 shl 16) or (b3 shl 24)).toInt()
     }
 
-    override fun write8(address: Address, value: Int) {
+    override fun write8(
+        address: Address,
+        value: Int,
+    ) {
         when (val r = regionOf(address)) {
             MemRegion.RAM -> {
                 val off = address.value.toInt() and 0x01FFFFFF
@@ -91,29 +99,44 @@ class MemoryBus(
         }
     }
 
-    override fun write16(address: Address, value: Int) {
+    override fun write16(
+        address: Address,
+        value: Int,
+    ) {
         write8(address, value and 0xFF)
         write8(address + 1, (value shr 8) and 0xFF)
     }
 
-    override fun write32(address: Address, value: Int) {
+    override fun write32(
+        address: Address,
+        value: Int,
+    ) {
         write8(address, value and 0xFF)
         write8(address + 1, (value shr 8) and 0xFF)
         write8(address + 2, (value shr 16) and 0xFF)
         write8(address + 3, (value shr 24) and 0xFF)
     }
 
-    override fun readBytes(address: Address, size: Int): ByteArray {
+    override fun readBytes(
+        address: Address,
+        size: Int,
+    ): ByteArray {
         val result = ByteArray(size)
         for (i in 0 until size) result[i] = read8(address + i).toByte()
         return result
     }
 
-    override fun writeBytes(address: Address, data: ByteArray) {
+    override fun writeBytes(
+        address: Address,
+        data: ByteArray,
+    ) {
         for (i in data.indices) write8(address + i, data[i].toInt() and 0xFF)
     }
 
-    fun loadSegment(baseAddress: Address, data: ByteArray) {
+    fun loadSegment(
+        baseAddress: Address,
+        data: ByteArray,
+    ) {
         writeBytes(baseAddress, data)
     }
 

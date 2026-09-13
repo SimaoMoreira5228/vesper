@@ -16,7 +16,10 @@ object Platform {
         Logger.info("Platform") { "Platform initialized" }
     }
 
-    fun createWindow(width: Int, height: Int): Window {
+    fun createWindow(
+        width: Int,
+        height: Int,
+    ): Window {
         val w = Window(width, height)
         w.init()
         window = w

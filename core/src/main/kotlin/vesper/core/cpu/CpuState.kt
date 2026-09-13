@@ -39,7 +39,10 @@ class CpuState {
         return gpr[index]
     }
 
-    fun setGpr(index: Int, value: Int) {
+    fun setGpr(
+        index: Int,
+        value: Int,
+    ) {
         if (index != 0) gpr[index] = value
     }
 

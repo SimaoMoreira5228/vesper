@@ -68,11 +68,12 @@ class PspAutotestRunner(
             stopReason = StopReason.INSTRUCTION_LIMIT
             throw AssertionError("Reached max instructions ($maxInstructions) at PC ${cpu.pc}; recent=${recentTrace.joinToString(" | ")}")
         }
-        stopReason = when {
-            steps >= checkpointStop -> StopReason.OUTPUT_CHECKPOINT
-            kernel.isExitRequested() -> StopReason.KERNEL_EXIT
-            else -> StopReason.CPU_HALTED
-        }
+        stopReason =
+            when {
+                steps >= checkpointStop -> StopReason.OUTPUT_CHECKPOINT
+                kernel.isExitRequested() -> StopReason.KERNEL_EXIT
+                else -> StopReason.CPU_HALTED
+            }
         return kernel.kemulator.output
     }
 }

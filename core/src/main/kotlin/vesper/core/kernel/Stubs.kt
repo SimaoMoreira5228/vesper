@@ -1,6 +1,5 @@
 package vesper.core.kernel
 
-import vesper.core.IMemoryBus
 import vesper.core.memory.Address
 
 class DisplayStub {
@@ -26,7 +25,10 @@ class ControllerStub {
     private var samplingCycle: Int = 0
     private var samplingMode: Int = 0
 
-    fun readBuffer(ptr: Address, kernel: Kernel) {
+    fun readBuffer(
+        ptr: Address,
+        kernel: Kernel,
+    ) {
         val data = CtrlData()
         kernel.memory.write32(ptr, data.buttons)
         kernel.memory.write8(ptr + 4, data.lx.toInt() and 0xFF)

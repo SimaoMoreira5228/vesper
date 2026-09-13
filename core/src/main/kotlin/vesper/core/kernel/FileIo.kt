@@ -2,7 +2,6 @@ package vesper.core.kernel
 
 import vesper.common.Loggable
 import vesper.common.warn
-import vesper.core.IMemoryBus
 import vesper.core.memory.Address
 import java.io.File
 import java.io.RandomAccessFile
@@ -15,7 +14,6 @@ data class FileDescriptor(
 )
 
 class FileIo : Loggable {
-
     override val tag: String get() = "FileIo"
 
     private var nextFd: Int = 1
@@ -31,7 +29,10 @@ class FileIo : Loggable {
         mountPoints["umd0:"] = cwd
     }
 
-    fun mount(device: String, path: File) {
+    fun mount(
+        device: String,
+        path: File,
+    ) {
         mountPoints[device] = path
     }
 
@@ -49,7 +50,11 @@ class FileIo : Loggable {
         return File(mountPoints["host0:"] ?: File("."), cleaned)
     }
 
-    fun open(path: String, flags: Int, mode: Int): Int {
+    fun open(
+        path: String,
+        flags: Int,
+        mode: Int,
+    ): Int {
         val resolved = resolvePath(path) ?: return -1
         val fd = nextFd++
 
@@ -73,11 +78,17 @@ class FileIo : Loggable {
         val file = fds.remove(fd) ?: return -1
         try {
             file.hostFile?.close()
-        } catch (_: Exception) {}
+        } catch (_: Exception) {
+        }
         return 0
     }
 
-    fun read(fd: Int, bufPtr: Address, count: Int, kernel: Kernel): Int {
+    fun read(
+        fd: Int,
+        bufPtr: Address,
+        count: Int,
+        kernel: Kernel,
+    ): Int {
         val file = fds[fd] ?: return -1
         val raf = file.hostFile ?: return -1
         return try {
@@ -93,7 +104,12 @@ class FileIo : Loggable {
         }
     }
 
-    fun write(fd: Int, bufPtr: Address, count: Int, kernel: Kernel): Int {
+    fun write(
+        fd: Int,
+        bufPtr: Address,
+        count: Int,
+        kernel: Kernel,
+    ): Int {
         val file = fds[fd] ?: return -1
         val raf = file.hostFile ?: return -1
         return try {
@@ -106,16 +122,21 @@ class FileIo : Loggable {
         }
     }
 
-    fun seek(fd: Int, offset: Int, whence: Int): Long {
+    fun seek(
+        fd: Int,
+        offset: Int,
+        whence: Int,
+    ): Long {
         val file = fds[fd] ?: return -1L
         val raf = file.hostFile ?: return -1L
         return try {
-            val pos = when (whence) {
-                0 -> offset.toLong()
-                1 -> raf.filePointer + offset
-                2 -> raf.length() + offset
-                else -> return -1L
-            }
+            val pos =
+                when (whence) {
+                    0 -> offset.toLong()
+                    1 -> raf.filePointer + offset
+                    2 -> raf.length() + offset
+                    else -> return -1L
+                }
             raf.seek(pos)
             raf.filePointer
         } catch (e: Exception) {
@@ -124,7 +145,13 @@ class FileIo : Loggable {
         }
     }
 
-    fun devctl(name: String, cmd: Int, inData: ByteArray?, inLen: Int, outData: ByteArray?): Int {
+    fun devctl(
+        name: String,
+        cmd: Int,
+        inData: ByteArray?,
+        inLen: Int,
+        outData: ByteArray?,
+    ): Int {
         return -1
     }
 

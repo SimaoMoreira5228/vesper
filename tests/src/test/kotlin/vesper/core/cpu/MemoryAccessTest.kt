@@ -23,7 +23,12 @@ class MemoryAccessTest : StringSpec({
         return c
     }
 
-    fun iType(opcode: Int, rs: Int, rt: Int, imm: Int): Int {
+    fun iType(
+        opcode: Int,
+        rs: Int,
+        rt: Int,
+        imm: Int,
+    ): Int {
         return (opcode shl 26) or (rs shl 21) or (rt shl 16) or (imm and 0xFFFF)
     }
 

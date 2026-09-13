@@ -14,7 +14,12 @@ class MultiplyDivideTest : StringSpec({
         return c
     }
 
-    fun rType(rs: Int, rt: Int, rd: Int, funct: Int): Int {
+    fun rType(
+        rs: Int,
+        rt: Int,
+        rd: Int,
+        funct: Int,
+    ): Int {
         return (rs shl 21) or (rt shl 16) or (rd shl 11) or funct
     }
 

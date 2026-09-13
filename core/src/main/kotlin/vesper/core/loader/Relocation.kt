@@ -7,7 +7,6 @@ import vesper.core.IMemoryBus
 import vesper.core.memory.Address
 
 object Relocation : Loggable {
-
     override val tag: String get() = "Relocation"
 
     fun applyAll(
@@ -57,84 +56,90 @@ object Relocation : Loggable {
         }
     }
 
-    private fun applySingle(memory: IMemoryBus, seg: Segment, reloc: RelocEntry, delta: Long) {
+    private fun applySingle(
+        memory: IMemoryBus,
+        seg: Segment,
+        reloc: RelocEntry,
+        delta: Long,
+    ) {
         val addr = Address(seg.vaddr + reloc.offset)
         val word = memory.read32(addr)
 
-        val patched = when (reloc.type) {
-            ElfConstants.R_MIPS_NONE -> word
+        val patched =
+            when (reloc.type) {
+                ElfConstants.R_MIPS_NONE -> word
 
-            ElfConstants.R_MIPS_32 -> {
-                (word.toLong() + delta + reloc.addend.toLong()).toInt()
-            }
+                ElfConstants.R_MIPS_32 -> {
+                    (word.toLong() + delta + reloc.addend.toLong()).toInt()
+                }
 
-            ElfConstants.R_MIPS_26 -> {
-                val target = (word and 0x03FFFFFF).toLong() shl 2
-                val fullAddr = (target + delta.toLong() + reloc.addend.toLong())
-                val newField = ((fullAddr shr 2) and 0x3FFFFFF).toInt()
-                (word and 0xFC000000.toInt()) or newField
-            }
+                ElfConstants.R_MIPS_26 -> {
+                    val target = (word and 0x03FFFFFF).toLong() shl 2
+                    val fullAddr = (target + delta.toLong() + reloc.addend.toLong())
+                    val newField = ((fullAddr shr 2) and 0x3FFFFFF).toInt()
+                    (word and 0xFC000000.toInt()) or newField
+                }
 
-            ElfConstants.R_MIPS_HI16 -> {
-                val val16 = (word.toUInt() and 0xFFFFu).toInt()
-                val extended = (val16 shl 16)
-                val result = (extended.toLong() + delta + reloc.addend.toLong()).toInt()
-                val hi = ((result + 0x8000) ushr 16) and 0xFFFF
-                (word and 0xFFFF0000.toInt()) or hi
-            }
+                ElfConstants.R_MIPS_HI16 -> {
+                    val val16 = (word.toUInt() and 0xFFFFu).toInt()
+                    val extended = (val16 shl 16)
+                    val result = (extended.toLong() + delta + reloc.addend.toLong()).toInt()
+                    val hi = ((result + 0x8000) ushr 16) and 0xFFFF
+                    (word and 0xFFFF0000.toInt()) or hi
+                }
 
-            ElfConstants.R_MIPS_LO16 -> {
-                val val16 = (word.toUInt() and 0xFFFFu).toInt()
-                val signExtended = if (val16 and 0x8000 != 0) val16 or (-1 shl 16) else val16
-                val result = (signExtended.toLong() + delta + reloc.addend.toLong()).toInt()
-                (word and 0xFFFF0000.toInt()) or (result and 0xFFFF)
-            }
+                ElfConstants.R_MIPS_LO16 -> {
+                    val val16 = (word.toUInt() and 0xFFFFu).toInt()
+                    val signExtended = if (val16 and 0x8000 != 0) val16 or (-1 shl 16) else val16
+                    val result = (signExtended.toLong() + delta + reloc.addend.toLong()).toInt()
+                    (word and 0xFFFF0000.toInt()) or (result and 0xFFFF)
+                }
 
-            ElfConstants.R_MIPS_GPREL -> {
-                word
-            }
+                ElfConstants.R_MIPS_GPREL -> {
+                    word
+                }
 
-            ElfConstants.R_MIPS_LITERAL -> {
-                (word.toLong() + delta + reloc.addend.toLong()).toInt()
-            }
+                ElfConstants.R_MIPS_LITERAL -> {
+                    (word.toLong() + delta + reloc.addend.toLong()).toInt()
+                }
 
-            ElfConstants.R_MIPS_GOT16 -> {
-                val val16 = (word.toUInt() and 0xFFFFu).toInt()
-                val extended = (val16 shl 16)
-                val result = (extended.toLong() + delta + reloc.addend.toLong()).toInt()
-                val hi = (result ushr 16) and 0xFFFF
-                (word and 0xFFFF0000.toInt()) or hi
-            }
+                ElfConstants.R_MIPS_GOT16 -> {
+                    val val16 = (word.toUInt() and 0xFFFFu).toInt()
+                    val extended = (val16 shl 16)
+                    val result = (extended.toLong() + delta + reloc.addend.toLong()).toInt()
+                    val hi = (result ushr 16) and 0xFFFF
+                    (word and 0xFFFF0000.toInt()) or hi
+                }
 
-            ElfConstants.R_MIPS_CALL16 -> {
-                val val16 = (word.toUInt() and 0xFFFFu).toInt()
-                val extended = (val16 shl 16)
-                val result = (extended.toLong() + delta + reloc.addend.toLong()).toInt()
-                val hi = (result ushr 16) and 0xFFFF
-                (word and 0xFFFF0000.toInt()) or hi
-            }
+                ElfConstants.R_MIPS_CALL16 -> {
+                    val val16 = (word.toUInt() and 0xFFFFu).toInt()
+                    val extended = (val16 shl 16)
+                    val result = (extended.toLong() + delta + reloc.addend.toLong()).toInt()
+                    val hi = (result ushr 16) and 0xFFFF
+                    (word and 0xFFFF0000.toInt()) or hi
+                }
 
-            ElfConstants.R_MIPS_GPREL32 -> {
-                word
-            }
+                ElfConstants.R_MIPS_GPREL32 -> {
+                    word
+                }
 
-            ElfConstants.R_MIPS_SHIFT5 -> {
-                val value = reloc.addend and 0x1F
-                val mask = 0xFC1F83FF.toInt()
-                (word and mask) or ((value and 0x1F) shl 11) or ((value shr 5) shl 16)
-            }
+                ElfConstants.R_MIPS_SHIFT5 -> {
+                    val value = reloc.addend and 0x1F
+                    val mask = 0xFC1F83FF.toInt()
+                    (word and mask) or ((value and 0x1F) shl 11) or ((value shr 5) shl 16)
+                }
 
-            ElfConstants.R_MIPS_SHIFT6 -> {
-                val value = reloc.addend and 0x3F
-                val mask = 0xFC1F83FF.toInt()
-                (word and mask) or ((value and 0x1F) shl 11) or ((value shr 5) shl 16)
-            }
+                ElfConstants.R_MIPS_SHIFT6 -> {
+                    val value = reloc.addend and 0x3F
+                    val mask = 0xFC1F83FF.toInt()
+                    (word and mask) or ((value and 0x1F) shl 11) or ((value shr 5) shl 16)
+                }
 
-            else -> {
-                warn { "Unsupported relocation type ${reloc.type} at $addr" }
-                word
+                else -> {
+                    warn { "Unsupported relocation type ${reloc.type} at $addr" }
+                    word
+                }
             }
-        }
 
         if (patched != word) {
             memory.write32(addr, patched)

@@ -1,11 +1,13 @@
 package vesper.core.cpu
 
 fun interface InstructionHandler {
-    fun execute(cpu: Cpu, instruction: Int)
+    fun execute(
+        cpu: Cpu,
+        instruction: Int,
+    )
 }
 
 object OpcodeTable {
-
     private val handlers = arrayOfNulls<InstructionHandler>(64)
     private val specialHandlers = arrayOfNulls<InstructionHandler>(64)
     private val regimmHandlers = arrayOfNulls<InstructionHandler>(32)
@@ -13,17 +15,19 @@ object OpcodeTable {
     private val special3Handlers = arrayOfNulls<InstructionHandler>(64)
 
     init {
-        handlers[Opcode.SPECIAL] = InstructionHandler { cpu, insn ->
-            val funct = instructionFunct(insn)
-            specialHandlers[funct]?.execute(cpu, insn)
-                ?: cpu.raiseException(CpuException.ReservedInstruction)
-        }
+        handlers[Opcode.SPECIAL] =
+            InstructionHandler { cpu, insn ->
+                val funct = instructionFunct(insn)
+                specialHandlers[funct]?.execute(cpu, insn)
+                    ?: cpu.raiseException(CpuException.ReservedInstruction)
+            }
 
-        handlers[Opcode.REGIMM] = InstructionHandler { cpu, insn ->
-            val rt = instructionRt(insn)
-            regimmHandlers[rt]?.execute(cpu, insn)
-                ?: cpu.raiseException(CpuException.ReservedInstruction)
-        }
+        handlers[Opcode.REGIMM] =
+            InstructionHandler { cpu, insn ->
+                val rt = instructionRt(insn)
+                regimmHandlers[rt]?.execute(cpu, insn)
+                    ?: cpu.raiseException(CpuException.ReservedInstruction)
+            }
 
         handlers[Opcode.J] = InstructionHandler(ControlFlow::executeJ)
         handlers[Opcode.JAL] = InstructionHandler(ControlFlow::executeJal)
@@ -74,16 +78,24 @@ object OpcodeTable {
         handlers[Opcode.SV_Q] = InstructionHandler(VectorUnit::executeMemory)
 
         specialHandlers[Funct.SLL] = InstructionHandler(Arithmetic::executeSll)
-        specialHandlers[Funct.SRL] = InstructionHandler { cpu, insn ->
-            if (instructionRs(insn) == 1) Arithmetic.executeRor(cpu, insn)
-            else Arithmetic.executeSrl(cpu, insn)
-        }
+        specialHandlers[Funct.SRL] =
+            InstructionHandler { cpu, insn ->
+                if (instructionRs(insn) == 1) {
+                    Arithmetic.executeRor(cpu, insn)
+                } else {
+                    Arithmetic.executeSrl(cpu, insn)
+                }
+            }
         specialHandlers[Funct.SRA] = InstructionHandler(Arithmetic::executeSra)
         specialHandlers[Funct.SLLV] = InstructionHandler(Arithmetic::executeSllv)
-        specialHandlers[Funct.SRLV] = InstructionHandler { cpu, insn ->
-            if ((insn and 0x40) != 0) Arithmetic.executeRorv(cpu, insn)
-            else Arithmetic.executeSrlv(cpu, insn)
-        }
+        specialHandlers[Funct.SRLV] =
+            InstructionHandler { cpu, insn ->
+                if ((insn and 0x40) != 0) {
+                    Arithmetic.executeRorv(cpu, insn)
+                } else {
+                    Arithmetic.executeSrlv(cpu, insn)
+                }
+            }
         specialHandlers[Funct.SRAV] = InstructionHandler(Arithmetic::executeSrav)
         specialHandlers[Funct.JR] = InstructionHandler(ControlFlow::executeJr)
         specialHandlers[Funct.JALR] = InstructionHandler(ControlFlow::executeJalr)
@@ -128,38 +140,45 @@ object OpcodeTable {
         regimmHandlers[RegImm.BLTZALL] = InstructionHandler(ControlFlow::executeBltzall)
         regimmHandlers[RegImm.BGEZALL] = InstructionHandler(ControlFlow::executeBgezall)
 
-        handlers[Opcode.SPECIAL2] = InstructionHandler { cpu, insn ->
-            val funct = instructionFunct(insn)
-            special2Handlers[funct]?.execute(cpu, insn)
-        }
-
-        handlers[Opcode.SPECIAL3] = InstructionHandler { cpu, insn ->
-            val funct = instructionFunct(insn)
-            special3Handlers[funct]?.execute(cpu, insn)
-                ?: cpu.raiseException(CpuException.ReservedInstruction)
-        }
-
-        special3Handlers[0x00] = InstructionHandler { cpu, insn ->
-            if (instructionShamt(insn) == 16 && instructionRd(insn) == 0)
-                Arithmetic.executeWsbh(cpu, insn)
-            else
-                Arithmetic.executeExt(cpu, insn)
-        }
-        special3Handlers[0x04] = InstructionHandler(Arithmetic::executeIns)
-        special3Handlers[0x20] = InstructionHandler { cpu, insn ->
-            when (instructionShamt(insn)) {
-                0x02 -> Arithmetic.executeWsbh(cpu, insn)
-                0x03 -> Arithmetic.executeWsbw(cpu, insn)
-                0x10 -> Arithmetic.executeSeb(cpu, insn)
-                0x14 -> Arithmetic.executeBitrev(cpu, insn)
-                0x18 -> Arithmetic.executeSeh(cpu, insn)
-                else -> cpu.raiseException(CpuException.ReservedInstruction)
+        handlers[Opcode.SPECIAL2] =
+            InstructionHandler { cpu, insn ->
+                val funct = instructionFunct(insn)
+                special2Handlers[funct]?.execute(cpu, insn)
             }
-        }
 
+        handlers[Opcode.SPECIAL3] =
+            InstructionHandler { cpu, insn ->
+                val funct = instructionFunct(insn)
+                special3Handlers[funct]?.execute(cpu, insn)
+                    ?: cpu.raiseException(CpuException.ReservedInstruction)
+            }
+
+        special3Handlers[0x00] =
+            InstructionHandler { cpu, insn ->
+                if (instructionShamt(insn) == 16 && instructionRd(insn) == 0) {
+                    Arithmetic.executeWsbh(cpu, insn)
+                } else {
+                    Arithmetic.executeExt(cpu, insn)
+                }
+            }
+        special3Handlers[0x04] = InstructionHandler(Arithmetic::executeIns)
+        special3Handlers[0x20] =
+            InstructionHandler { cpu, insn ->
+                when (instructionShamt(insn)) {
+                    0x02 -> Arithmetic.executeWsbh(cpu, insn)
+                    0x03 -> Arithmetic.executeWsbw(cpu, insn)
+                    0x10 -> Arithmetic.executeSeb(cpu, insn)
+                    0x14 -> Arithmetic.executeBitrev(cpu, insn)
+                    0x18 -> Arithmetic.executeSeh(cpu, insn)
+                    else -> cpu.raiseException(CpuException.ReservedInstruction)
+                }
+            }
     }
 
-    fun dispatch(cpu: Cpu, instruction: Int) {
+    fun dispatch(
+        cpu: Cpu,
+        instruction: Int,
+    ) {
         val opcode = instructionOpcode(instruction)
         handlers[opcode]?.execute(cpu, instruction)
             ?: cpu.raiseException(CpuException.ReservedInstruction)

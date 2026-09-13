@@ -16,15 +16,20 @@ class PspHeaderTest : StringSpec({
         val headerSize = PspHeaderConstants.PSP_HEADER_SIZE
         val bytes = ByteArray(headerSize + 64) { 0 }
 
-        fun w32(offset: Int, value: UInt) {
+        fun w32(
+            offset: Int,
+            value: UInt,
+        ) {
             bytes[offset] = (value and 0xFFu).toByte()
             bytes[offset + 1] = ((value shr 8) and 0xFFu).toByte()
             bytes[offset + 2] = ((value shr 16) and 0xFFu).toByte()
             bytes[offset + 3] = ((value shr 24) and 0xFFu).toByte()
         }
 
-        bytes[0] = '~'.code.toByte(); bytes[1] = 'P'.code.toByte()
-        bytes[2] = 'S'.code.toByte(); bytes[3] = 'P'.code.toByte()
+        bytes[0] = '~'.code.toByte()
+        bytes[1] = 'P'.code.toByte()
+        bytes[2] = 'S'.code.toByte()
+        bytes[3] = 'P'.code.toByte()
 
         w32(0x04, 0x1000u)
         w32(0x06, compType.toUInt())

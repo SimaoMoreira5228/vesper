@@ -6,8 +6,9 @@ class TraceFirstInstructionsTest : StringSpec({
 
     fun resource(name: String): ByteArray {
         val path = "pspautotests/tests/$name"
-        val url = TraceFirstInstructionsTest::class.java.classLoader.getResource(path)
-            ?: throw RuntimeException("Resource not found: $path")
+        val url =
+            TraceFirstInstructionsTest::class.java.classLoader.getResource(path)
+                ?: throw RuntimeException("Resource not found: $path")
         return url.readBytes()
     }
 

@@ -1,30 +1,33 @@
 package vesper.core.loader
 
 import io.kotest.core.spec.style.StringSpec
-import vesper.common.Logger
-import vesper.common.LogLevel
-import vesper.common.LogSinks
-import vesper.core.kernel.Kernel
-import vesper.core.memory.Address
-import vesper.core.memory.MemoryBus
 
 class DebugRelocTest : StringSpec({
 
     fun resource(name: String): ByteArray {
         val path = "pspautotests/tests/$name"
-        val url = DebugRelocTest::class.java.classLoader.getResource(path)
-            ?: throw RuntimeException("Resource not found: $path")
+        val url =
+            DebugRelocTest::class.java.classLoader.getResource(path)
+                ?: throw RuntimeException("Resource not found: $path")
         return url.readBytes()
     }
 
-    fun read32(bytes: ByteArray, offset: Int): UInt {
-        return ((bytes[offset].toInt() and 0xFF).toUInt() or
+    fun read32(
+        bytes: ByteArray,
+        offset: Int,
+    ): UInt {
+        return (
+            (bytes[offset].toInt() and 0xFF).toUInt() or
                 ((bytes[offset + 1].toInt() and 0xFF).toUInt() shl 8) or
                 ((bytes[offset + 2].toInt() and 0xFF).toUInt() shl 16) or
-                ((bytes[offset + 3].toInt() and 0xFF).toUInt() shl 24))
+                ((bytes[offset + 3].toInt() and 0xFF).toUInt() shl 24)
+        )
     }
 
-    fun read16(bytes: ByteArray, offset: Int): Int {
+    fun read16(
+        bytes: ByteArray,
+        offset: Int,
+    ): Int {
         return ((bytes[offset].toInt() and 0xFF) or ((bytes[offset + 1].toInt() and 0xFF) shl 8))
     }
 
@@ -69,10 +72,14 @@ class DebugRelocTest : StringSpec({
             val off = phoff + i * phentsize
             val ptype = read32(prx, off).toInt()
             val poffset = read32(prx, off + 4)
-            if (ptype == 1) { loadOffset = poffset; break }
+            if (ptype == 1) {
+                loadOffset = poffset
+                break
+            }
         }
 
         fun fileAddr(vaddr: Int): Int = vaddr - 0 + loadOffset.toInt()
+
         fun vaddrOf(fileOff: Int): Int = fileOff - loadOffset.toInt() + 0
 
         // Instructions at vaddr 0x1c540 and 0x1c544

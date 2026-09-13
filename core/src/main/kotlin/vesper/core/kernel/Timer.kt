@@ -82,7 +82,11 @@ data class SystemTime(
             )
         }
 
-        fun writeToMemory(memory: vesper.core.IMemoryBus, addr: Address, time: SystemTime) {
+        fun writeToMemory(
+            memory: vesper.core.IMemoryBus,
+            addr: Address,
+            time: SystemTime,
+        ) {
             memory.write16(addr, time.year.toInt())
             memory.write16(addr + 2, time.month.toInt())
             memory.write16(addr + 4, time.day.toInt())

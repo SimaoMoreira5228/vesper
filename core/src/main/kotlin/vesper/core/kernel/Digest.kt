@@ -6,32 +6,53 @@ import vesper.core.memory.Address
 import java.security.MessageDigest
 
 class Digest : Loggable {
-
     override val tag: String get() = "Digest"
 
     private val contexts = mutableMapOf<Int, MessageDigest>()
 
-    fun start(contextPtr: Int, algorithm: String) {
+    fun start(
+        contextPtr: Int,
+        algorithm: String,
+    ) {
         contexts[contextPtr] = MessageDigest.getInstance(algorithm)
     }
 
-    fun update(contextPtr: Int, memory: IMemoryBus, dataPtr: Int, length: Int) {
+    fun update(
+        contextPtr: Int,
+        memory: IMemoryBus,
+        dataPtr: Int,
+        length: Int,
+    ) {
         val digest = contexts[contextPtr] ?: return
         if (length > 0) digest.update(memory.readBytes(Address(dataPtr.toUInt()), length))
     }
 
-    fun finish(contextPtr: Int, memory: IMemoryBus, resultPtr: Int) {
+    fun finish(
+        contextPtr: Int,
+        memory: IMemoryBus,
+        resultPtr: Int,
+    ) {
         val digest = contexts.remove(contextPtr) ?: return
         writeWords(memory, resultPtr, digest.digest())
     }
 
-    fun once(algorithm: String, memory: IMemoryBus, dataPtr: Int, length: Int, resultPtr: Int) {
+    fun once(
+        algorithm: String,
+        memory: IMemoryBus,
+        dataPtr: Int,
+        length: Int,
+        resultPtr: Int,
+    ) {
         val digest = MessageDigest.getInstance(algorithm)
         if (length > 0) digest.update(memory.readBytes(Address(dataPtr.toUInt()), length))
         writeWords(memory, resultPtr, digest.digest())
     }
 
-    private fun writeWords(memory: IMemoryBus, resultPtr: Int, bytes: ByteArray) {
+    private fun writeWords(
+        memory: IMemoryBus,
+        resultPtr: Int,
+        bytes: ByteArray,
+    ) {
         memory.writeBytes(Address(resultPtr.toUInt()), bytes)
     }
 }

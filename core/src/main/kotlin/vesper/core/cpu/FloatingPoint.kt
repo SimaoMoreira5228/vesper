@@ -19,26 +19,36 @@ object FloatingPoint {
     private const val CAUSE_OVERFLOW = 1 shl 14
     private const val CAUSE_INVALID = 1 shl 16
 
-    fun executeLoad(cpu: Cpu, insn: Int) {
+    fun executeLoad(
+        cpu: Cpu,
+        insn: Int,
+    ) {
         val address = effectiveAddress(cpu, insn)
         cpu.state.fpr[instructionRt(insn)] = Float.fromBits(cpu.memory.read32(address))
     }
 
-    fun executeStore(cpu: Cpu, insn: Int) {
+    fun executeStore(
+        cpu: Cpu,
+        insn: Int,
+    ) {
         val address = effectiveAddress(cpu, insn)
         cpu.memory.write32(address, cpu.state.fpr[instructionRt(insn)].toRawBits())
     }
 
-    fun executeCop1(cpu: Cpu, insn: Int) {
+    fun executeCop1(
+        cpu: Cpu,
+        insn: Int,
+    ) {
         when (instructionRs(insn)) {
             0 -> cpu.state.setGpr(instructionRt(insn), cpu.state.fpr[instructionRd(insn)].toRawBits())
             2 -> {
                 val register = instructionRd(insn)
-                val value = when (register) {
-                    0 -> cpu.state.fcr[0]
-                    31 -> cpu.state.fcr[31]
-                    else -> 0
-                }
+                val value =
+                    when (register) {
+                        0 -> cpu.state.fcr[0]
+                        31 -> cpu.state.fcr[31]
+                        else -> 0
+                    }
                 cpu.state.setGpr(instructionRt(insn), value)
             }
             4 -> cpu.state.fpr[instructionRd(insn)] = Float.fromBits(cpu.state.gpr(instructionRt(insn)))
@@ -56,7 +66,10 @@ object FloatingPoint {
         }
     }
 
-    private fun executeWord(cpu: Cpu, insn: Int) {
+    private fun executeWord(
+        cpu: Cpu,
+        insn: Int,
+    ) {
         val fs = cpu.state.fpr[instructionRd(insn)].toRawBits()
         val fd = instructionShamt(insn)
         when (instructionFunct(insn)) {
@@ -65,7 +78,10 @@ object FloatingPoint {
         }
     }
 
-    private fun executeSingle(cpu: Cpu, insn: Int) {
+    private fun executeSingle(
+        cpu: Cpu,
+        insn: Int,
+    ) {
         val funct = instructionFunct(insn)
         val fs = cpu.state.fpr[instructionRd(insn)]
         val ft = cpu.state.fpr[instructionRt(insn)]
@@ -74,42 +90,54 @@ object FloatingPoint {
             setCondition(cpu, compare(funct - 0x30, fs, ft))
             return
         }
-        val result = when (funct) {
-            0x00 -> roundedArithmetic(cpu, fs.toDouble() + ft.toDouble())
-            0x01 -> roundedArithmetic(cpu, fs.toDouble() - ft.toDouble())
-            0x02 -> roundedArithmetic(cpu, fs.toDouble() * ft.toDouble())
-            0x03 -> if (ft == 0f) {
-                recordException(cpu, FLAG_INVALID, CAUSE_INVALID)
-                roundedArithmetic(cpu, fs.toDouble() / ft.toDouble())
-            } else roundedArithmetic(cpu, fs.toDouble() / ft.toDouble())
-            0x04 -> if (fs < 0f) {
-                recordException(cpu, FLAG_INVALID, CAUSE_INVALID)
-                roundedArithmetic(cpu, sqrt(fs.toDouble()))
-            } else roundedArithmetic(cpu, sqrt(fs.toDouble()))
-            0x05 -> kotlin.math.abs(fs)
-            0x06 -> fs
-            0x07 -> -fs
-            0x0C -> Float.fromBits(roundedWord(cpu, fs, Rounding.NEAREST))
-            0x0D -> Float.fromBits(roundedWord(cpu, fs, Rounding.TRUNCATE))
-            0x0E -> Float.fromBits(roundedWord(cpu, fs, Rounding.CEIL))
-            0x0F -> Float.fromBits(roundedWord(cpu, fs, Rounding.FLOOR))
-            0x20 -> fs
-            0x24 -> Float.fromBits(roundedWord(cpu, fs, currentRounding(cpu)))
-            else -> {
-                cpu.raiseException(CpuException.ReservedInstruction)
-                return
+        val result =
+            when (funct) {
+                0x00 -> roundedArithmetic(cpu, fs.toDouble() + ft.toDouble())
+                0x01 -> roundedArithmetic(cpu, fs.toDouble() - ft.toDouble())
+                0x02 -> roundedArithmetic(cpu, fs.toDouble() * ft.toDouble())
+                0x03 ->
+                    if (ft == 0f) {
+                        recordException(cpu, FLAG_INVALID, CAUSE_INVALID)
+                        roundedArithmetic(cpu, fs.toDouble() / ft.toDouble())
+                    } else {
+                        roundedArithmetic(cpu, fs.toDouble() / ft.toDouble())
+                    }
+                0x04 ->
+                    if (fs < 0f) {
+                        recordException(cpu, FLAG_INVALID, CAUSE_INVALID)
+                        roundedArithmetic(cpu, sqrt(fs.toDouble()))
+                    } else {
+                        roundedArithmetic(cpu, sqrt(fs.toDouble()))
+                    }
+                0x05 -> kotlin.math.abs(fs)
+                0x06 -> fs
+                0x07 -> -fs
+                0x0C -> Float.fromBits(roundedWord(cpu, fs, Rounding.NEAREST))
+                0x0D -> Float.fromBits(roundedWord(cpu, fs, Rounding.TRUNCATE))
+                0x0E -> Float.fromBits(roundedWord(cpu, fs, Rounding.CEIL))
+                0x0F -> Float.fromBits(roundedWord(cpu, fs, Rounding.FLOOR))
+                0x20 -> fs
+                0x24 -> Float.fromBits(roundedWord(cpu, fs, currentRounding(cpu)))
+                else -> {
+                    cpu.raiseException(CpuException.ReservedInstruction)
+                    return
+                }
             }
-        }
         val binary = funct in 0x00..0x03
         if (fs.isNaN() || (binary && ft.isNaN())) recordException(cpu, FLAG_INVALID, CAUSE_INVALID)
-        if (result.isInfinite() && fs.isFinite() && (!binary || ft.isFinite()))
+        if (result.isInfinite() && fs.isFinite() && (!binary || ft.isFinite())) {
             recordException(cpu, FLAG_OVERFLOW or FLAG_INEXACT, CAUSE_OVERFLOW or CAUSE_INEXACT)
-        if (result != 0f && abs(result) < 1.17549435E-38f)
+        }
+        if (result != 0f && abs(result) < 1.17549435E-38f) {
             recordException(cpu, FLAG_UNDERFLOW or FLAG_INEXACT, CAUSE_UNDERFLOW or CAUSE_INEXACT)
+        }
         cpu.state.fpr[fd] = flush(result, cpu.state.fcr[31])
     }
 
-    private fun executeBranch(cpu: Cpu, insn: Int) {
+    private fun executeBranch(
+        cpu: Cpu,
+        insn: Int,
+    ) {
         val condition = (cpu.state.fcr[31] and CONDITION_BIT) != 0
         val branchType = instructionRt(insn)
         val likely = (branchType and 2) != 0
@@ -122,35 +150,56 @@ object FloatingPoint {
         }
     }
 
-    private fun effectiveAddress(cpu: Cpu, insn: Int) =
-        Address((cpu.state.gpr(instructionRs(insn)) + instructionImmediateSigned(insn)).toUInt())
+    private fun effectiveAddress(
+        cpu: Cpu,
+        insn: Int,
+    ) = Address((cpu.state.gpr(instructionRs(insn)) + instructionImmediateSigned(insn)).toUInt())
 
-    private fun setCondition(cpu: Cpu, value: Boolean) {
-        cpu.state.fcr[31] = if (value) cpu.state.fcr[31] or CONDITION_BIT
-        else cpu.state.fcr[31] and CONDITION_BIT.inv()
+    private fun setCondition(
+        cpu: Cpu,
+        value: Boolean,
+    ) {
+        cpu.state.fcr[31] =
+            if (value) {
+                cpu.state.fcr[31] or CONDITION_BIT
+            } else {
+                cpu.state.fcr[31] and CONDITION_BIT.inv()
+            }
     }
 
-    private fun recordException(cpu: Cpu, flag: Int, cause: Int) {
+    private fun recordException(
+        cpu: Cpu,
+        flag: Int,
+        cause: Int,
+    ) {
         cpu.state.fcr[31] = cpu.state.fcr[31] or flag or cause
     }
 
-    private fun roundedArithmetic(cpu: Cpu, exact: Double): Float {
+    private fun roundedArithmetic(
+        cpu: Cpu,
+        exact: Double,
+    ): Float {
         val nearest = exact.toFloat()
         if (!exact.isFinite() || exact == 0.0 || nearest.toDouble() == exact) return nearest
         recordException(cpu, FLAG_INEXACT, CAUSE_INEXACT)
         return when (currentRounding(cpu)) {
             Rounding.NEAREST -> nearest
-            Rounding.TRUNCATE -> when {
-                exact > 0.0 && nearest > exact -> Math.nextDown(nearest)
-                exact < 0.0 && nearest < exact -> Math.nextUp(nearest)
-                else -> nearest
-            }
+            Rounding.TRUNCATE ->
+                when {
+                    exact > 0.0 && nearest > exact -> Math.nextDown(nearest)
+                    exact < 0.0 && nearest < exact -> Math.nextUp(nearest)
+                    else -> nearest
+                }
             Rounding.CEIL -> if (nearest < exact) Math.nextUp(nearest) else nearest
             Rounding.FLOOR -> if (nearest > exact) Math.nextDown(nearest) else nearest
         }
     }
 
-    private fun compare(code: Int, left: Float, right: Float): Boolean {
+    private fun compare(
+        code: Int,
+        left: Float,
+        right: Float,
+    ): Boolean {
         val unordered = left.isNaN() || right.isNaN()
         return when (code) {
             0, 8 -> false
@@ -167,14 +216,19 @@ object FloatingPoint {
 
     private enum class Rounding { NEAREST, TRUNCATE, CEIL, FLOOR }
 
-    private fun currentRounding(cpu: Cpu) = when (cpu.state.fcr[31] and 3) {
-        1 -> Rounding.TRUNCATE
-        2 -> Rounding.CEIL
-        3 -> Rounding.FLOOR
-        else -> Rounding.NEAREST
-    }
+    private fun currentRounding(cpu: Cpu) =
+        when (cpu.state.fcr[31] and 3) {
+            1 -> Rounding.TRUNCATE
+            2 -> Rounding.CEIL
+            3 -> Rounding.FLOOR
+            else -> Rounding.NEAREST
+        }
 
-    private fun roundedWord(cpu: Cpu, value: Float, mode: Rounding): Int {
+    private fun roundedWord(
+        cpu: Cpu,
+        value: Float,
+        mode: Rounding,
+    ): Int {
         if (value.isNaN()) {
             recordException(cpu, FLAG_INVALID, CAUSE_INVALID)
             return Int.MAX_VALUE
@@ -187,20 +241,27 @@ object FloatingPoint {
             recordException(cpu, FLAG_INVALID, CAUSE_INVALID)
             return Int.MIN_VALUE
         }
-        val rounded = when (mode) {
-            Rounding.NEAREST -> Math.rint(value.toDouble())
-            Rounding.TRUNCATE -> value.toDouble().toInt().toDouble()
-            Rounding.CEIL -> ceil(value.toDouble())
-            Rounding.FLOOR -> floor(value.toDouble())
-        }
+        val rounded =
+            when (mode) {
+                Rounding.NEAREST -> Math.rint(value.toDouble())
+                Rounding.TRUNCATE -> value.toDouble().toInt().toDouble()
+                Rounding.CEIL -> ceil(value.toDouble())
+                Rounding.FLOOR -> floor(value.toDouble())
+            }
         if (rounded != value.toDouble()) recordException(cpu, FLAG_INEXACT, CAUSE_INEXACT)
-        if (rounded < Int.MIN_VALUE.toDouble() || rounded > Int.MAX_VALUE.toDouble())
+        if (rounded < Int.MIN_VALUE.toDouble() || rounded > Int.MAX_VALUE.toDouble()) {
             recordException(cpu, FLAG_INVALID, CAUSE_INVALID)
+        }
         return rounded.coerceIn(Int.MIN_VALUE.toDouble(), Int.MAX_VALUE.toDouble()).toInt()
     }
 
-    private fun flush(value: Float, fcr31: Int): Float =
-        if (fcr31 and FLUSH_TO_ZERO_BIT != 0 && value != 0f && abs(value) < 1.17549435E-38f)
+    private fun flush(
+        value: Float,
+        fcr31: Int,
+    ): Float =
+        if (fcr31 and FLUSH_TO_ZERO_BIT != 0 && value != 0f && abs(value) < 1.17549435E-38f) {
             Math.copySign(0f, value)
-        else value
+        } else {
+            value
+        }
 }

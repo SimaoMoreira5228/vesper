@@ -1,7 +1,7 @@
 package vesper.app
 
-import vesper.common.Logger
 import vesper.common.LogLevel
+import vesper.common.Logger
 import vesper.core.cpu.Cpu
 import vesper.core.gpu.Framebuffer
 import vesper.core.gpu.GeState
@@ -72,7 +72,7 @@ fun main() {
 
         frameCount++
         if (frameCount % 100 == 0) {
-            window.setTitle("Vesper PSP [FPS: ~${frameCount}]")
+            window.setTitle("Vesper PSP [FPS: ~$frameCount]")
         }
     }
 

@@ -21,8 +21,14 @@ sourceSets {
 tasks.register<Exec>("clonePspAutotests") {
     description = "Clone pspautotests repo for test resources"
     val dest = file("$rootDir/build/pspautotests")
-    commandLine("git", "clone", "--depth", "1",
-        "https://github.com/hrydgard/pspautotests.git", dest.absolutePath)
+    commandLine(
+        "git",
+        "clone",
+        "--depth",
+        "1",
+        "https://github.com/hrydgard/pspautotests.git",
+        dest.absolutePath,
+    )
     enabled = !dest.resolve(".git").exists()
 }
 
@@ -64,13 +70,14 @@ tasks.register<JavaExec>("runPspAutotest") {
     instructionsAfterCheckpoint.orNull?.let { systemProperty("vesper.instructionsAfterCheckpoint", it) }
     tracePcStart.orNull?.let { systemProperty("vesper.tracePcStart", it) }
     tracePcEnd.orNull?.let { systemProperty("vesper.tracePcEnd", it) }
-    args = buildList {
-        prx.orNull?.let { add(rootProject.file(it).absolutePath) }
-        expected.orNull?.let { add(rootProject.file(it).absolutePath) }
-        trace.orNull?.let { add(it) }
-        if (trace.orNull == null && maxInstructions.orNull != null) add("0")
-        maxInstructions.orNull?.let { add(it) }
-    }
+    args =
+        buildList {
+            prx.orNull?.let { add(rootProject.file(it).absolutePath) }
+            expected.orNull?.let { add(rootProject.file(it).absolutePath) }
+            trace.orNull?.let { add(it) }
+            if (trace.orNull == null && maxInstructions.orNull != null) add("0")
+            maxInstructions.orNull?.let { add(it) }
+        }
 }
 
 tasks.withType<Copy>().configureEach {

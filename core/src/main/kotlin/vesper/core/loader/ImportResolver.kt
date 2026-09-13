@@ -1,22 +1,30 @@
 package vesper.core.loader
 
 object ImportResolver {
-
     private fun ByteArray.cstr(offset: Int): String {
         val sb = StringBuilder()
         var i = offset
-        while (i < size && this[i].toInt() != 0) { sb.append(this[i].toInt().toChar()); i++ }
+        while (i < size && this[i].toInt() != 0) {
+            sb.append(this[i].toInt().toChar())
+            i++
+        }
         return sb.toString()
     }
 
     private fun ByteArray.u32(offset: Int): UInt {
-        return ((this[offset].toInt() and 0xFF).toUInt() or
+        return (
+            (this[offset].toInt() and 0xFF).toUInt() or
                 ((this[offset + 1].toInt() and 0xFF).toUInt() shl 8) or
                 ((this[offset + 2].toInt() and 0xFF).toUInt() shl 16) or
-                ((this[offset + 3].toInt() and 0xFF).toUInt() shl 24))
+                ((this[offset + 3].toInt() and 0xFF).toUInt() shl 24)
+        )
     }
 
-    fun parseImports(bytes: ByteArray, shdrs: List<Elf32Shdr>, shStrTab: ByteArray?): Pair<List<ImportEntry>, List<ImportModule>> {
+    fun parseImports(
+        bytes: ByteArray,
+        shdrs: List<Elf32Shdr>,
+        shStrTab: ByteArray?,
+    ): Pair<List<ImportEntry>, List<ImportModule>> {
         val sceStubTextSec = findSection(shdrs, shStrTab, ".sceStub.text")
         val libStubSec = findSection(shdrs, shStrTab, ".lib.stub")
         val rodataNidSec = findSection(shdrs, shStrTab, ".rodata.sceNid")
@@ -27,21 +35,37 @@ object ImportResolver {
         return Pair(imports, modules)
     }
 
-    private fun findSection(shdrs: List<Elf32Shdr>, strTab: ByteArray?, name: String): Elf32Shdr? {
+    private fun findSection(
+        shdrs: List<Elf32Shdr>,
+        strTab: ByteArray?,
+        name: String,
+    ): Elf32Shdr? {
         return shdrs.find { shdr ->
-            if (strTab == null) false
-            else sectionName(strTab, shdr.name) == name
+            if (strTab == null) {
+                false
+            } else {
+                sectionName(strTab, shdr.name) == name
+            }
         }
     }
 
-    private fun sectionName(strTab: ByteArray, nameOff: Int): String {
+    private fun sectionName(
+        strTab: ByteArray,
+        nameOff: Int,
+    ): String {
         val sb = StringBuilder()
         var i = nameOff
-        while (i < strTab.size && strTab[i].toInt() != 0) { sb.append(strTab[i].toInt().toChar()); i++ }
+        while (i < strTab.size && strTab[i].toInt() != 0) {
+            sb.append(strTab[i].toInt().toChar())
+            i++
+        }
         return sb.toString()
     }
 
-    private fun parseLibStub(bytes: ByteArray, sec: Elf32Shdr?): List<ImportModule> {
+    private fun parseLibStub(
+        bytes: ByteArray,
+        sec: Elf32Shdr?,
+    ): List<ImportModule> {
         val modules = mutableListOf<ImportModule>()
         if (sec == null) return modules
 
@@ -112,7 +136,12 @@ object ImportResolver {
         return imports
     }
 
-    fun parseRelocationTables(bytes: ByteArray, phdrs: List<Elf32Phdr>, segments: List<Segment>, shdrs: List<Elf32Shdr>): List<SegmentRelocs> {
+    fun parseRelocationTables(
+        bytes: ByteArray,
+        phdrs: List<Elf32Phdr>,
+        segments: List<Segment>,
+        shdrs: List<Elf32Shdr>,
+    ): List<SegmentRelocs> {
         val groups = mutableListOf<SegmentRelocs>()
 
         for (phdr in phdrs) {
@@ -122,7 +151,10 @@ object ImportResolver {
             if (base + sz > bytes.size || sz < 4) continue
             var segIdx = -1
             for ((i, seg) in segments.withIndex()) {
-                if (seg.vaddr == (phdr.paddr and 0x1FFFFFFFu)) { segIdx = i; break }
+                if (seg.vaddr == (phdr.paddr and 0x1FFFFFFFu)) {
+                    segIdx = i
+                    break
+                }
             }
             if (segIdx < 0) segIdx = 0
             if (phdr.type == ElfConstants.PT_SCE_PSPREL) {
@@ -144,7 +176,11 @@ object ImportResolver {
         return groups
     }
 
-    private fun parseElfRel(bytes: ByteArray, base: Int, sz: Int): List<RelocEntry> {
+    private fun parseElfRel(
+        bytes: ByteArray,
+        base: Int,
+        sz: Int,
+    ): List<RelocEntry> {
         val relocs = mutableListOf<RelocEntry>()
         val count = sz / 8
         for (i in 0 until count) {
@@ -154,29 +190,37 @@ object ImportResolver {
             val rInfo = bytes.u32(off + 4).toInt()
             val rType = rInfo and 0xFF
             val rSym = rInfo ushr 8
-            relocs.add(RelocEntry(
-                offset = rOffset.toUInt(),
-                type = rType,
-                symIndex = rSym,
-                addend = 0,
-            ))
+            relocs.add(
+                RelocEntry(
+                    offset = rOffset.toUInt(),
+                    type = rType,
+                    symIndex = rSym,
+                    addend = 0,
+                ),
+            )
         }
         return relocs
     }
 
-    private fun parsePspRel(bytes: ByteArray, base: Int, sz: Int): List<RelocEntry> {
+    private fun parsePspRel(
+        bytes: ByteArray,
+        base: Int,
+        sz: Int,
+    ): List<RelocEntry> {
         val relocs = mutableListOf<RelocEntry>()
         val entrySize = ElfConstants.PSPREL_ENTRY_SIZE
         val count = sz / entrySize
         for (i in 0 until count) {
             val off = base + i * entrySize
             if (off + entrySize > bytes.size) break
-            relocs.add(RelocEntry(
-                offset = bytes.u32(off),
-                type = bytes.u32(off + 4).toInt(),
-                symIndex = bytes.u32(off + 8).toInt(),
-                addend = bytes.u32(off + 12).toInt(),
-            ))
+            relocs.add(
+                RelocEntry(
+                    offset = bytes.u32(off),
+                    type = bytes.u32(off + 4).toInt(),
+                    symIndex = bytes.u32(off + 8).toInt(),
+                    addend = bytes.u32(off + 12).toInt(),
+                ),
+            )
         }
         return relocs
     }

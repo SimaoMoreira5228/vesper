@@ -59,23 +59,31 @@ class Window(private val initialWidth: Int, private val initialHeight: Int) {
         glfwSetWindowCloseCallback(windowHandle) { shouldClose = true }
         glfwSetFramebufferSizeCallback(windowHandle) { _, w, h -> }
 
-        Logger.info(LOG_TAG) { "Window created: ${initialWidth}x${initialHeight}" }
+        Logger.info(LOG_TAG) { "Window created: ${initialWidth}x$initialHeight" }
     }
 
-    fun createSurface(instanceHandle: Long, createInfo: VkInstanceCreateInfo): Long {
+    fun createSurface(
+        instanceHandle: Long,
+        createInfo: VkInstanceCreateInfo,
+    ): Long {
         MemoryStack.stackPush().use { stack ->
             val surfaceBuf = stack.mallocLong(1)
-            val err = glfwCreateWindowSurface(
-                VkInstance(instanceHandle, createInfo),
-                windowHandle, null, surfaceBuf
-            )
+            val err =
+                glfwCreateWindowSurface(
+                    VkInstance(instanceHandle, createInfo),
+                    windowHandle,
+                    null,
+                    surfaceBuf,
+                )
             if (err != VK_SUCCESS) throw RuntimeException("Failed to create surface: $err")
             surfaceHandle = surfaceBuf[0]
             return surfaceHandle
         }
     }
 
-    fun setKernel(kernel: Kernel) { kernelRef = kernel }
+    fun setKernel(kernel: Kernel) {
+        kernelRef = kernel
+    }
 
     fun update() {
         glfwPollEvents()
@@ -93,7 +101,9 @@ class Window(private val initialWidth: Int, private val initialHeight: Int) {
         }
     }
 
-    fun setTitle(title: String) { glfwSetWindowTitle(windowHandle, title) }
+    fun setTitle(title: String) {
+        glfwSetWindowTitle(windowHandle, title)
+    }
 
     fun shutdown() {
         glfwFreeCallbacks(windowHandle)

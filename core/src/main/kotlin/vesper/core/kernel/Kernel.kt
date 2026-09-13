@@ -2,7 +2,6 @@ package vesper.core.kernel
 
 import vesper.common.Loggable
 import vesper.common.info
-import vesper.common.warn
 import vesper.core.ICpu
 import vesper.core.IKernel
 import vesper.core.IMemoryBus
@@ -23,7 +22,6 @@ class Kernel(
     val controller: ControllerStub = ControllerStub(),
     val kemulator: KemulatorDevice = KemulatorDevice(),
 ) : IKernel, Loggable {
-
     override val tag: String get() = "Kernel"
 
     private val digest = Digest()
@@ -39,7 +37,10 @@ class Kernel(
     private val errorNoMemory = 0x80020190.toInt()
     private val maxThreadStack = 0x10000000u
 
-    fun registerImport(stubAddr: Address, nid: Int) {
+    fun registerImport(
+        stubAddr: Address,
+        nid: Int,
+    ) {
         importMap[stubAddr] = nid
     }
 
@@ -65,7 +66,10 @@ class Kernel(
         memory.write32(addr + 16, 0x00000000)
     }
 
-    override fun handleSyscall(id: Int, cpu: ICpu): Int {
+    override fun handleSyscall(
+        id: Int,
+        cpu: ICpu,
+    ): Int {
         val caller = scheduler.currentThread()
         val result = syscallTable.dispatch(id, this, cpu as Cpu)
         if (scheduler.currentThreadId == caller?.id) {
@@ -83,7 +87,10 @@ class Kernel(
         scheduler.tick()
     }
 
-    fun dispatchSyscallFromCpu(nid: Int, cpu: Cpu): Int {
+    fun dispatchSyscallFromCpu(
+        nid: Int,
+        cpu: Cpu,
+    ): Int {
         return syscallTable.dispatch(nid, this, cpu)
     }
 
@@ -457,7 +464,10 @@ class Kernel(
         syscallTable.register(Nids.IO_MKDIR, "sceIoMkdir") { _, _ -> 0 }
         syscallTable.register(Nids.IO_RMDIR, "sceIoRmdir") { _, _ -> 0 }
 
-        val ioDevctlHandler = fun(kernel: Kernel, cpu: Cpu): Int {
+        val ioDevctlHandler = fun(
+            kernel: Kernel,
+            cpu: Cpu,
+        ): Int {
             val namePtr = Address(cpu.state.gpr(4).toUInt())
             val cmd = cpu.state.gpr(5)
             val inPtr = Address(cpu.state.gpr(6).toUInt())
@@ -469,8 +479,12 @@ class Kernel(
             val sp = cpu.state.gpr(29).toUInt()
             val outPtr = Address(cpu.memory.read32(Address(sp + 16u)).toUInt())
             val outLen = cpu.memory.read32(Address(sp + 20u)).toUInt()
-            val outData = if (outPtr != Address.ZERO && outLen > 0u && outLen < 1024u && outPtr.value >= 0x08800000u && outPtr.value < 0x08A00000u)
-                ByteArray(outLen.toInt()) else null
+            val outData =
+                if (outPtr != Address.ZERO && outLen > 0u && outLen < 1024u && outPtr.value >= 0x08800000u && outPtr.value < 0x08A00000u) {
+                    ByteArray(outLen.toInt())
+                } else {
+                    null
+                }
 
             val kemResult = kernel.kemulator.handleDevctl(name, cmd, inData, inLen, outData)
             if (cmd == 2 && inData != null) {
@@ -553,7 +567,10 @@ class Kernel(
         return 0
     }
 
-    private fun readStringFromMemory(memory: IMemoryBus, addr: Address): String {
+    private fun readStringFromMemory(
+        memory: IMemoryBus,
+        addr: Address,
+    ): String {
         val sb = StringBuilder()
         var current = addr
         while (true) {

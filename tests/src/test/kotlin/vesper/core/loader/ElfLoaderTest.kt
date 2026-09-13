@@ -3,10 +3,13 @@ package vesper.core.loader
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
-import io.kotest.matchers.booleans.shouldBeTrue
 import vesper.core.memory.Address
 
-private fun writeU32(bytes: ByteArray, offset: Int, value: UInt) {
+private fun writeU32(
+    bytes: ByteArray,
+    offset: Int,
+    value: UInt,
+) {
     bytes[offset] = (value and 0xFFu).toByte()
     bytes[offset + 1] = ((value shr 8) and 0xFFu).toByte()
     bytes[offset + 2] = ((value shr 16) and 0xFFu).toByte()
@@ -47,7 +50,10 @@ class ElfLoaderTest : StringSpec({
         bytes[18] = (machine and 0xFF).toByte()
         bytes[19] = (machine shr 8).toByte()
 
-        bytes[20] = 1; bytes[21] = 0; bytes[22] = 0; bytes[23] = 0
+        bytes[20] = 1
+        bytes[21] = 0
+        bytes[22] = 0
+        bytes[23] = 0
 
         writeU32(bytes, 24, entry)
         writeU32(bytes, 28, phdrOffset)

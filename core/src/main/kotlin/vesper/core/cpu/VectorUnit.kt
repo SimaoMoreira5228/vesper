@@ -4,22 +4,30 @@ import vesper.core.memory.Address
 import kotlin.math.absoluteValue
 
 object VectorUnit {
-    internal const val sourcePrefix = 0
-    internal const val targetPrefix = 1
-    internal const val destinationPrefix = 2
-    internal const val passthroughPrefix = 0xE4
+    internal const val SOURCE_PREFIX = 0
+    internal const val TARGET_PREFIX = 1
+    internal const val DESTINATION_PREFIX = 2
+    internal const val PASSTHROUGH_PREFIX = 0xE4
     internal const val CC_REGISTER = 3
 
-    fun executeCop2(cpu: Cpu, insn: Int) {
+    fun executeCop2(
+        cpu: Cpu,
+        insn: Int,
+    ) {
         val state = cpu.state
         val immediate = insn and 0xFF
         val rt = instructionRt(insn)
         when ((insn ushr 21) and 0x1F) {
-            3 -> if (rt != 0) {
-                val value = if (immediate < 128) state.vpr[immediate].toRawBits()
-                else state.vfpuCtrl.getOrElse(immediate - 128) { 0 }
-                state.setGpr(rt, value)
-            }
+            3 ->
+                if (rt != 0) {
+                    val value =
+                        if (immediate < 128) {
+                            state.vpr[immediate].toRawBits()
+                        } else {
+                            state.vfpuCtrl.getOrElse(immediate - 128) { 0 }
+                        }
+                    state.setGpr(rt, value)
+                }
             7 -> {
                 val value = state.gpr(rt)
                 if (immediate < 128) {
@@ -32,7 +40,10 @@ object VectorUnit {
         }
     }
 
-    fun executeMemory(cpu: Cpu, insn: Int) {
+    fun executeMemory(
+        cpu: Cpu,
+        insn: Int,
+    ) {
         val opcode = insn ushr 26
         val base = cpu.state.gpr(instructionRs(insn)).toUInt()
         val offset = (insn and 0xFFFC).toShort().toInt()
@@ -61,9 +72,10 @@ object VectorUnit {
                 }
             }
             Opcode.LV_Q -> {
-                val values = FloatArray(4) { lane ->
-                    Float.fromBits(cpu.memory.read32(address + lane * 4))
-                }
+                val values =
+                    FloatArray(4) { lane ->
+                        Float.fromBits(cpu.memory.read32(address + lane * 4))
+                    }
                 writeVector(cpu.state, register, 4, values, applyDestinationPrefix = false)
             }
             Opcode.SV_Q -> {
@@ -76,12 +88,15 @@ object VectorUnit {
         }
     }
 
-    fun executeVfpu5(cpu: Cpu, insn: Int) {
+    fun executeVfpu5(
+        cpu: Cpu,
+        insn: Int,
+    ) {
         val type = (insn ushr 23) and 7
         when (type) {
-            0, 1 -> cpu.state.vfpuCtrl[sourcePrefix] = insn and 0xFFFFF
-            2, 3 -> cpu.state.vfpuCtrl[targetPrefix] = insn and 0xFFFFF
-            4, 5 -> cpu.state.vfpuCtrl[destinationPrefix] = insn and 0xFFF
+            0, 1 -> cpu.state.vfpuCtrl[SOURCE_PREFIX] = insn and 0xFFFFF
+            2, 3 -> cpu.state.vfpuCtrl[TARGET_PREFIX] = insn and 0xFFFFF
+            4, 5 -> cpu.state.vfpuCtrl[DESTINATION_PREFIX] = insn and 0xFFF
             6 -> {
                 writeVector(cpu.state, instructionVt(insn), 1, floatArrayOf((insn and 0xFFFF).toShort().toFloat()))
                 consumePrefixes(cpu.state)
@@ -93,7 +108,10 @@ object VectorUnit {
         }
     }
 
-    fun executeVfpu4(cpu: Cpu, insn: Int) {
+    fun executeVfpu4(
+        cpu: Cpu,
+        insn: Int,
+    ) {
         when (val selector = (insn ushr 21) and 0x1F) {
             0 -> VectorConversions.executeUnary(cpu, insn)
             1 -> VectorConversions.executeVfpu7(cpu, insn)
@@ -105,12 +123,15 @@ object VectorUnit {
         }
     }
 
-    fun executeVfpu3(cpu: Cpu, insn: Int) {
+    fun executeVfpu3(
+        cpu: Cpu,
+        insn: Int,
+    ) {
         val operation = (insn ushr 23) and 7
         val state = cpu.state
         val size = vectorSize(insn)
-        val source = readVector(state, instructionVs(insn), size, sourcePrefix)
-        val target = readVector(state, instructionVt(insn), size, targetPrefix)
+        val source = readVector(state, instructionVs(insn), size, SOURCE_PREFIX)
+        val target = readVector(state, instructionVt(insn), size, TARGET_PREFIX)
         if (operation == 0) {
             executeVcmp(state, insn and 0xF, source, target, size)
             consumePrefixes(state)
@@ -121,20 +142,33 @@ object VectorUnit {
             2 -> for (lane in 0 until size) result[lane] = minOf(source[lane], target[lane])
             3 -> for (lane in 0 until size) result[lane] = maxOf(source[lane], target[lane])
             5 -> for (lane in 0 until size) {
-                result[lane] = when {
-                    source[lane].isNaN() || target[lane].isNaN() -> 0f
-                    source[lane] > target[lane] -> 1f
-                    source[lane] < target[lane] -> -1f
-                    else -> 0f
-                }
+                result[lane] =
+                    when {
+                        source[lane].isNaN() || target[lane].isNaN() -> 0f
+                        source[lane] > target[lane] -> 1f
+                        source[lane] < target[lane] -> -1f
+                        else -> 0f
+                    }
             }
             6 -> for (lane in 0 until size) {
-                result[lane] = if (source[lane].isNaN() || target[lane].isNaN()) 0f
-                else if (source[lane] >= target[lane]) 1f else 0f
+                result[lane] =
+                    if (source[lane].isNaN() || target[lane].isNaN()) {
+                        0f
+                    } else if (source[lane] >= target[lane]) {
+                        1f
+                    } else {
+                        0f
+                    }
             }
             7 -> for (lane in 0 until size) {
-                result[lane] = if (source[lane].isNaN() || target[lane].isNaN()) 0f
-                else if (source[lane] < target[lane]) 1f else 0f
+                result[lane] =
+                    if (source[lane].isNaN() || target[lane].isNaN()) {
+                        0f
+                    } else if (source[lane] < target[lane]) {
+                        1f
+                    } else {
+                        0f
+                    }
             }
             else -> {
                 cpu.raiseException(CpuException.ReservedInstruction)
@@ -145,7 +179,13 @@ object VectorUnit {
         consumePrefixes(state)
     }
 
-    private fun executeVcmp(state: CpuState, condition: Int, source: FloatArray, target: FloatArray, size: Int) {
+    private fun executeVcmp(
+        state: CpuState,
+        condition: Int,
+        source: FloatArray,
+        target: FloatArray,
+        size: Int,
+    ) {
         var bits = 0
         var orValue = 0
         var andValue = 1
@@ -153,25 +193,26 @@ object VectorUnit {
         for (lane in 0 until size) {
             val a = source[lane]
             val b = target[lane]
-            val matches = when (condition) {
-                0 -> false
-                1 -> a == b
-                2 -> a < b
-                3 -> a <= b
-                4 -> true
-                5 -> a != b
-                6 -> a >= b
-                7 -> a > b
-                8 -> a == 0f
-                9 -> a.isNaN()
-                10 -> a.isInfinite()
-                11 -> a.isNaN() || a.isInfinite()
-                12 -> a != 0f
-                13 -> !a.isNaN()
-                14 -> !a.isInfinite()
-                15 -> !a.isNaN() && !a.isInfinite()
-                else -> false
-            }
+            val matches =
+                when (condition) {
+                    0 -> false
+                    1 -> a == b
+                    2 -> a < b
+                    3 -> a <= b
+                    4 -> true
+                    5 -> a != b
+                    6 -> a >= b
+                    7 -> a > b
+                    8 -> a == 0f
+                    9 -> a.isNaN()
+                    10 -> a.isInfinite()
+                    11 -> a.isNaN() || a.isInfinite()
+                    12 -> a != 0f
+                    13 -> !a.isNaN()
+                    14 -> !a.isInfinite()
+                    15 -> !a.isNaN() && !a.isInfinite()
+                    else -> false
+                }
             val bit = if (matches) 1 else 0
             bits = bits or (bit shl lane)
             orValue = orValue or bit
@@ -183,31 +224,37 @@ object VectorUnit {
             ((bits or (orValue shl 4) or (andValue shl 5)) and affected)
     }
 
-    fun executeVfpu6(cpu: Cpu, insn: Int) {
+    fun executeVfpu6(
+        cpu: Cpu,
+        insn: Int,
+    ) {
         VectorMatrix.execute(cpu, insn)
     }
 
-    fun executeArithmetic(cpu: Cpu, insn: Int) {
+    fun executeArithmetic(
+        cpu: Cpu,
+        insn: Int,
+    ) {
         val opcode = insn ushr 26
         val operation = (insn ushr 23) and 7
         val size = vectorSize(insn)
         val state = cpu.state
-        val source = readVector(state, instructionVs(insn), size, sourcePrefix)
+        val source = readVector(state, instructionVs(insn), size, SOURCE_PREFIX)
         val result = FloatArray(size)
 
         when {
             opcode == Opcode.VFPU0 && operation <= 1 -> {
-                val target = readVector(state, instructionVt(insn), size, targetPrefix)
+                val target = readVector(state, instructionVt(insn), size, TARGET_PREFIX)
                 for (lane in 0 until size) {
                     result[lane] = if (operation == 0) source[lane] + target[lane] else source[lane] - target[lane]
                 }
             }
             opcode == Opcode.VFPU1 && operation == 0 -> {
-                val target = readVector(state, instructionVt(insn), size, targetPrefix)
+                val target = readVector(state, instructionVt(insn), size, TARGET_PREFIX)
                 for (lane in 0 until size) result[lane] = source[lane] * target[lane]
             }
             opcode == Opcode.VFPU1 && operation == 1 -> {
-                val target = readVector(state, instructionVt(insn), size, targetPrefix)
+                val target = readVector(state, instructionVt(insn), size, TARGET_PREFIX)
                 var dot = 0f
                 for (lane in 0 until size) dot += source[lane] * target[lane]
                 result[0] = dot
@@ -216,11 +263,11 @@ object VectorUnit {
                 return
             }
             opcode == Opcode.VFPU1 && operation == 2 -> {
-                val scalar = readVector(state, instructionVt(insn), 1, targetPrefix)[0]
+                val scalar = readVector(state, instructionVt(insn), 1, TARGET_PREFIX)[0]
                 for (lane in 0 until size) result[lane] = source[lane] * scalar
             }
             opcode == Opcode.VFPU0 && operation == 7 -> {
-                val target = readVector(state, instructionVt(insn), size, targetPrefix)
+                val target = readVector(state, instructionVt(insn), size, TARGET_PREFIX)
                 for (lane in 0 until size) result[lane] = source[lane] / target[lane]
             }
             else -> {
@@ -233,20 +280,24 @@ object VectorUnit {
         consumePrefixes(state)
     }
 
-    fun vectorRegisters(register: Int, size: Int): IntArray {
+    fun vectorRegisters(
+        register: Int,
+        size: Int,
+    ): IntArray {
         val matrix = (register ushr 2) and 7
         val column = register and 3
         var transpose = (register ushr 5) and 1
-        val row = when (size) {
-            1 -> {
-                transpose = 0
-                (register ushr 5) and 3
+        val row =
+            when (size) {
+                1 -> {
+                    transpose = 0
+                    (register ushr 5) and 3
+                }
+                2 -> (register ushr 5) and 2
+                3 -> (register ushr 6) and 1
+                4 -> (register ushr 5) and 2
+                else -> error("Invalid VFPU vector size: $size")
             }
-            2 -> (register ushr 5) and 2
-            3 -> (register ushr 6) and 1
-            4 -> (register ushr 5) and 2
-            else -> error("Invalid VFPU vector size: $size")
-        }
         return IntArray(size) { lane ->
             if (transpose != 0) {
                 matrix * 4 + ((row + lane) and 3) + column * 32
@@ -256,7 +307,12 @@ object VectorUnit {
         }
     }
 
-    internal fun readVector(state: CpuState, register: Int, size: Int, prefixIndex: Int?): FloatArray {
+    internal fun readVector(
+        state: CpuState,
+        register: Int,
+        size: Int,
+        prefixIndex: Int?,
+    ): FloatArray {
         val registers = vectorRegisters(register, size)
         val raw = FloatArray(size) { state.vpr[registers[it]] }
         if (prefixIndex == null) return raw
@@ -280,19 +336,30 @@ object VectorUnit {
         applyDestinationPrefix: Boolean = true,
     ) {
         val registers = vectorRegisters(register, size)
-        val prefix = if (applyDestinationPrefix) state.vfpuCtrl[destinationPrefix] else 0
+        val prefix = if (applyDestinationPrefix) state.vfpuCtrl[DESTINATION_PREFIX] else 0
         for (lane in 0 until size) {
             if (applyDestinationPrefix && (prefix and (1 shl (8 + lane))) != 0) continue
             val saturation = if (applyDestinationPrefix) (prefix ushr (lane * 2)) and 3 else 0
-            state.vpr[registers[lane]] = when (saturation) {
-                1 -> if (values[lane] <= 0f) 0f else if (values[lane] > 1f) 1f else values[lane]
-                3 -> values[lane].coerceIn(-1f, 1f)
-                else -> values[lane]
-            }
+            state.vpr[registers[lane]] =
+                when (saturation) {
+                    1 ->
+                        if (values[lane] <= 0f) {
+                            0f
+                        } else if (values[lane] > 1f) {
+                            1f
+                        } else {
+                            values[lane]
+                        }
+                    3 -> values[lane].coerceIn(-1f, 1f)
+                    else -> values[lane]
+                }
         }
     }
 
-    internal fun writeIdentity(state: CpuState, register: Int) {
+    internal fun writeIdentity(
+        state: CpuState,
+        register: Int,
+    ) {
         val matrix = (register ushr 2) and 7
         val base = matrix * 4
         for (row in 0 until 4) {
@@ -302,31 +369,42 @@ object VectorUnit {
         }
     }
 
-    private fun readScalarBits(state: CpuState, register: Int): Int =
-        state.vpr[vectorRegisters(register, 1)[0]].toRawBits()
+    private fun readScalarBits(
+        state: CpuState,
+        register: Int,
+    ): Int = state.vpr[vectorRegisters(register, 1)[0]].toRawBits()
 
-    private fun writeScalarBits(state: CpuState, register: Int, bits: Int) {
+    private fun writeScalarBits(
+        state: CpuState,
+        register: Int,
+        bits: Int,
+    ) {
         state.vpr[vectorRegisters(register, 1)[0]] = Float.fromBits(bits)
     }
 
     internal fun consumePrefixes(state: CpuState) {
-        state.vfpuCtrl[sourcePrefix] = passthroughPrefix
-        state.vfpuCtrl[targetPrefix] = passthroughPrefix
-        state.vfpuCtrl[destinationPrefix] = 0
+        state.vfpuCtrl[SOURCE_PREFIX] = PASSTHROUGH_PREFIX
+        state.vfpuCtrl[TARGET_PREFIX] = PASSTHROUGH_PREFIX
+        state.vfpuCtrl[DESTINATION_PREFIX] = 0
     }
 
-    private fun prefixConstant(swizzle: Int, alternate: Boolean): Float = when (swizzle) {
-        0 -> if (alternate) 3f else 0f
-        1 -> if (alternate) 1f / 3f else 1f
-        2 -> if (alternate) 1f / 4f else 2f
-        else -> if (alternate) 1f / 6f else 1f / 2f
-    }
+    private fun prefixConstant(
+        swizzle: Int,
+        alternate: Boolean,
+    ): Float =
+        when (swizzle) {
+            0 -> if (alternate) 3f else 0f
+            1 -> if (alternate) 1f / 3f else 1f
+            2 -> if (alternate) 1f / 4f else 2f
+            else -> if (alternate) 1f / 6f else 1f / 2f
+        }
 
-    internal fun vectorSize(insn: Int): Int =
-        1 + ((insn ushr 7) and 1) + (((insn ushr 15) and 1) shl 1)
+    internal fun vectorSize(insn: Int): Int = 1 + ((insn ushr 7) and 1) + (((insn ushr 15) and 1) shl 1)
 
     internal fun instructionVd(insn: Int): Int = insn and 0x7F
+
     internal fun instructionVs(insn: Int): Int = (insn ushr 8) and 0x7F
+
     internal fun instructionVt(insn: Int): Int = (insn ushr 16) and 0x7F
 
     internal fun halfToFloat(value: Int): Float {

@@ -4,14 +4,16 @@ import kotlin.math.absoluteValue
 import kotlin.math.pow
 
 internal object VectorConversions {
-
-    fun executeUnary(cpu: Cpu, insn: Int) {
+    fun executeUnary(
+        cpu: Cpu,
+        insn: Int,
+    ) {
         val operation = instructionRt(insn)
         val size = VectorUnit.vectorSize(insn)
         val state = cpu.state
         when (operation) {
             0, 1, 2, 4, 5, 16, 17, 18, 19, 20, 21, 22, 23, 24, 26, 28 -> {
-                val source = VectorUnit.readVector(state, VectorUnit.instructionVs(insn), size, VectorUnit.sourcePrefix)
+                val source = VectorUnit.readVector(state, VectorUnit.instructionVs(insn), size, VectorUnit.SOURCE_PREFIX)
                 val result = FloatArray(size) { lane -> unary(operation, source[lane]) }
                 VectorUnit.writeVector(state, VectorUnit.instructionVd(insn), size, result)
             }
@@ -26,7 +28,10 @@ internal object VectorConversions {
         VectorUnit.consumePrefixes(state)
     }
 
-    fun executeVfpu7(cpu: Cpu, insn: Int) {
+    fun executeVfpu7(
+        cpu: Cpu,
+        insn: Int,
+    ) {
         val state = cpu.state
         when (val index = instructionRt(insn)) {
             18 -> convertFloatToHalf(state, insn)
@@ -38,12 +43,15 @@ internal object VectorConversions {
         VectorUnit.consumePrefixes(state)
     }
 
-    fun executeVfpu9(cpu: Cpu, insn: Int) {
+    fun executeVfpu9(
+        cpu: Cpu,
+        insn: Int,
+    ) {
         val state = cpu.state
         val size = VectorUnit.vectorSize(insn)
         when (instructionRt(insn)) {
             6, 7 -> {
-                val source = VectorUnit.readVector(state, VectorUnit.instructionVs(insn), size, VectorUnit.sourcePrefix)
+                val source = VectorUnit.readVector(state, VectorUnit.instructionVs(insn), size, VectorUnit.SOURCE_PREFIX)
                 var sum = 0f
                 for (lane in 0 until size) sum += source[lane]
                 val value = if (instructionRt(insn) == 7) sum / size else sum
@@ -57,54 +65,67 @@ internal object VectorConversions {
         VectorUnit.consumePrefixes(state)
     }
 
-    fun executeVf2i(cpu: Cpu, insn: Int, mode: Int) {
+    fun executeVf2i(
+        cpu: Cpu,
+        insn: Int,
+        mode: Int,
+    ) {
         val state = cpu.state
         val size = VectorUnit.vectorSize(insn)
-        val source = VectorUnit.readVector(state, VectorUnit.instructionVs(insn), size, VectorUnit.sourcePrefix)
+        val source = VectorUnit.readVector(state, VectorUnit.instructionVs(insn), size, VectorUnit.SOURCE_PREFIX)
         val scale = (1L shl ((insn ushr 16) and 0x1F)).toFloat()
-        val result = FloatArray(size) { lane ->
-            val value = source[lane]
-            val bits = if (value.isNaN()) {
-                Int.MAX_VALUE
-            } else {
-                val scaled = value.toDouble() * scale
-                when {
-                    scaled > Int.MAX_VALUE.toDouble() -> Int.MAX_VALUE
-                    scaled <= Int.MIN_VALUE.toDouble() -> Int.MIN_VALUE
-                    mode == 16 -> kotlin.math.round(scaled).toInt()
-                    mode == 17 -> if (value >= 0) kotlin.math.floor(scaled).toInt() else kotlin.math.ceil(scaled).toInt()
-                    mode == 18 -> kotlin.math.ceil(scaled).toInt()
-                    else -> kotlin.math.floor(scaled).toInt()
-                }
+        val result =
+            FloatArray(size) { lane ->
+                val value = source[lane]
+                val bits =
+                    if (value.isNaN()) {
+                        Int.MAX_VALUE
+                    } else {
+                        val scaled = value.toDouble() * scale
+                        when {
+                            scaled > Int.MAX_VALUE.toDouble() -> Int.MAX_VALUE
+                            scaled <= Int.MIN_VALUE.toDouble() -> Int.MIN_VALUE
+                            mode == 16 -> kotlin.math.round(scaled).toInt()
+                            mode == 17 -> if (value >= 0) kotlin.math.floor(scaled).toInt() else kotlin.math.ceil(scaled).toInt()
+                            mode == 18 -> kotlin.math.ceil(scaled).toInt()
+                            else -> kotlin.math.floor(scaled).toInt()
+                        }
+                    }
+                Float.fromBits(bits)
             }
-            Float.fromBits(bits)
-        }
         VectorUnit.writeVector(state, VectorUnit.instructionVd(insn), size, result)
         VectorUnit.consumePrefixes(state)
     }
 
-    fun executeVi2f(cpu: Cpu, insn: Int) {
+    fun executeVi2f(
+        cpu: Cpu,
+        insn: Int,
+    ) {
         val state = cpu.state
         val size = VectorUnit.vectorSize(insn)
-        val source = VectorUnit.readVector(state, VectorUnit.instructionVs(insn), size, VectorUnit.sourcePrefix)
+        val source = VectorUnit.readVector(state, VectorUnit.instructionVs(insn), size, VectorUnit.SOURCE_PREFIX)
         val scale = 1f / (1L shl ((insn ushr 16) and 0x1F)).toFloat()
         val result = FloatArray(size) { lane -> source[lane].toRawBits().toFloat() * scale }
         VectorUnit.writeVector(state, VectorUnit.instructionVd(insn), size, result)
         VectorUnit.consumePrefixes(state)
     }
 
-    fun executeVcmov(cpu: Cpu, insn: Int) {
+    fun executeVcmov(
+        cpu: Cpu,
+        insn: Int,
+    ) {
         val state = cpu.state
         val size = VectorUnit.vectorSize(insn)
         val conditional = (insn ushr 19) and 1
         val index = (insn ushr 16) and 7
-        val source = VectorUnit.readVector(state, VectorUnit.instructionVs(insn), size, VectorUnit.sourcePrefix)
-        val destination = VectorUnit.readVector(state, VectorUnit.instructionVd(insn), size, VectorUnit.targetPrefix)
+        val source = VectorUnit.readVector(state, VectorUnit.instructionVs(insn), size, VectorUnit.SOURCE_PREFIX)
+        val destination = VectorUnit.readVector(state, VectorUnit.instructionVd(insn), size, VectorUnit.TARGET_PREFIX)
         val condition = state.vfpuCtrl[VectorUnit.CC_REGISTER]
         when {
-            index < 6 -> if (((condition ushr index) and 1) == (1 - conditional)) {
-                for (lane in 0 until size) destination[lane] = source[lane]
-            }
+            index < 6 ->
+                if (((condition ushr index) and 1) == (1 - conditional)) {
+                    for (lane in 0 until size) destination[lane] = source[lane]
+                }
             index == 6 -> for (lane in 0 until size) {
                 if (((condition ushr lane) and 1) == (1 - conditional)) destination[lane] = source[lane]
             }
@@ -113,9 +134,13 @@ internal object VectorConversions {
         VectorUnit.consumePrefixes(state)
     }
 
-    private fun convertColorToInt(state: CpuState, insn: Int, mode: Int) {
+    private fun convertColorToInt(
+        state: CpuState,
+        insn: Int,
+        mode: Int,
+    ) {
         val size = VectorUnit.vectorSize(insn)
-        val source = VectorUnit.readVector(state, VectorUnit.instructionVs(insn), size, VectorUnit.sourcePrefix)
+        val source = VectorUnit.readVector(state, VectorUnit.instructionVs(insn), size, VectorUnit.SOURCE_PREFIX)
         if (mode <= 1) {
             val value = source[0].toRawBits()
             val result = FloatArray(4)
@@ -137,16 +162,28 @@ internal object VectorConversions {
             val result = FloatArray(4)
             for (i in 0 until elements) {
                 val value = source[i].toRawBits()
-                result[i * 2] = if (mode == 3) Float.fromBits((value and 0xFFFF) shl 16)
-                else Float.fromBits((value and 0xFFFF) shl 15)
-                result[i * 2 + 1] = if (mode == 3) Float.fromBits(value and 0xFFFF0000.toInt())
-                else Float.fromBits((value and 0xFFFF0000.toInt()) ushr 1)
+                result[i * 2] =
+                    if (mode == 3) {
+                        Float.fromBits((value and 0xFFFF) shl 16)
+                    } else {
+                        Float.fromBits((value and 0xFFFF) shl 15)
+                    }
+                result[i * 2 + 1] =
+                    if (mode == 3) {
+                        Float.fromBits(value and 0xFFFF0000.toInt())
+                    } else {
+                        Float.fromBits((value and 0xFFFF0000.toInt()) ushr 1)
+                    }
             }
             VectorUnit.writeVector(state, VectorUnit.instructionVd(insn), 4, result)
         }
     }
 
-    private fun convertIntToColor(state: CpuState, insn: Int, mode: Int) {
+    private fun convertIntToColor(
+        state: CpuState,
+        insn: Int,
+        mode: Int,
+    ) {
         val size = VectorUnit.vectorSize(insn)
         val source = VectorUnit.readVector(state, VectorUnit.instructionVs(insn), 4, null)
         if (mode <= 1) {
@@ -163,21 +200,25 @@ internal object VectorConversions {
             for (i in 0 until elements) {
                 val low = source[i * 2].toRawBits()
                 val high = source[i * 2 + 1].toRawBits()
-                val packed = if (mode == 3) {
-                    (low ushr 16) or ((high ushr 16) shl 16)
-                } else {
-                    ((if (low < 0) 0 else low ushr 15) and 0xFFFF) or
-                        (((if (high < 0) 0 else high ushr 15) and 0xFFFF) shl 16)
-                }
+                val packed =
+                    if (mode == 3) {
+                        (low ushr 16) or ((high ushr 16) shl 16)
+                    } else {
+                        ((if (low < 0) 0 else low ushr 15) and 0xFFFF) or
+                            (((if (high < 0) 0 else high ushr 15) and 0xFFFF) shl 16)
+                    }
                 result[i] = Float.fromBits(packed)
             }
             VectorUnit.writeVector(state, VectorUnit.instructionVd(insn), 4, result)
         }
     }
 
-    private fun convertFloatToHalf(state: CpuState, insn: Int) {
+    private fun convertFloatToHalf(
+        state: CpuState,
+        insn: Int,
+    ) {
         val size = VectorUnit.vectorSize(insn)
-        val source = VectorUnit.readVector(state, VectorUnit.instructionVs(insn), size, VectorUnit.sourcePrefix)
+        val source = VectorUnit.readVector(state, VectorUnit.instructionVs(insn), size, VectorUnit.SOURCE_PREFIX)
         if (size <= 2) {
             val packed = (floatToHalf(source[0]) and 0xFFFF) or ((floatToHalf(source.getOrElse(1) { 0f }) and 0xFFFF) shl 16)
             VectorUnit.writeVector(state, VectorUnit.instructionVd(insn), 1, floatArrayOf(Float.fromBits(packed)))
@@ -188,9 +229,12 @@ internal object VectorConversions {
         }
     }
 
-    private fun convertHalfToFloat(state: CpuState, insn: Int) {
+    private fun convertHalfToFloat(
+        state: CpuState,
+        insn: Int,
+    ) {
         val size = VectorUnit.vectorSize(insn)
-        val source = VectorUnit.readVector(state, VectorUnit.instructionVs(insn), size, VectorUnit.sourcePrefix)
+        val source = VectorUnit.readVector(state, VectorUnit.instructionVs(insn), size, VectorUnit.SOURCE_PREFIX)
         if (size == 1) {
             val packed = source[0].toRawBits()
             VectorUnit.writeVector(
@@ -219,23 +263,34 @@ internal object VectorConversions {
         }
     }
 
-    private fun unary(operation: Int, value: Float): Float = when (operation) {
-        0, 1, 2 -> value
-        4 -> if (value <= 0f) 0f else if (value > 1f) 1f else value
-        5 -> value.coerceIn(-1f, 1f)
-        16 -> 1f / value
-        17 -> 1f / kotlin.math.sqrt(value)
-        18 -> kotlin.math.sin(value * (kotlin.math.PI.toFloat() / 180f))
-        19 -> kotlin.math.cos(value * (kotlin.math.PI.toFloat() / 180f))
-        20 -> 2f.pow(value)
-        21 -> kotlin.math.log2(value)
-        22 -> kotlin.math.sqrt(value.absoluteValue)
-        23 -> kotlin.math.asin(value) * (180f / kotlin.math.PI.toFloat())
-        24 -> -1f / value
-        26 -> -kotlin.math.sin(value * (kotlin.math.PI.toFloat() / 180f))
-        28 -> 2f.pow(-value)
-        else -> value
-    }
+    private fun unary(
+        operation: Int,
+        value: Float,
+    ): Float =
+        when (operation) {
+            0, 1, 2 -> value
+            4 ->
+                if (value <= 0f) {
+                    0f
+                } else if (value > 1f) {
+                    1f
+                } else {
+                    value
+                }
+            5 -> value.coerceIn(-1f, 1f)
+            16 -> 1f / value
+            17 -> 1f / kotlin.math.sqrt(value)
+            18 -> kotlin.math.sin(value * (kotlin.math.PI.toFloat() / 180f))
+            19 -> kotlin.math.cos(value * (kotlin.math.PI.toFloat() / 180f))
+            20 -> 2f.pow(value)
+            21 -> kotlin.math.log2(value)
+            22 -> kotlin.math.sqrt(value.absoluteValue)
+            23 -> kotlin.math.asin(value) * (180f / kotlin.math.PI.toFloat())
+            24 -> -1f / value
+            26 -> -kotlin.math.sin(value * (kotlin.math.PI.toFloat() / 180f))
+            28 -> 2f.pow(-value)
+            else -> value
+        }
 
     private fun floatToHalf(value: Float): Int {
         val bits = value.toRawBits()

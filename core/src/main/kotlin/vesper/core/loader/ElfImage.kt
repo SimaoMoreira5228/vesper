@@ -32,7 +32,10 @@ data class ModuleInfo(
     companion object {
         const val SIZE = 48
 
-        fun read(bytes: ByteArray, offset: Int): ModuleInfo {
+        fun read(
+            bytes: ByteArray,
+            offset: Int,
+        ): ModuleInfo {
             val name = readCString(bytes, offset + 4, 28)
             val gp = bytes.read32(offset + 32)
             val entry = bytes.read32(offset + 36)
@@ -51,12 +54,16 @@ data class ModuleInfo(
 
         private fun ByteArray.read32(offset: Int): Int {
             return (this[offset].toInt() and 0xFF) or
-                    ((this[offset + 1].toInt() and 0xFF) shl 8) or
-                    ((this[offset + 2].toInt() and 0xFF) shl 16) or
-                    ((this[offset + 3].toInt() and 0xFF) shl 24)
+                ((this[offset + 1].toInt() and 0xFF) shl 8) or
+                ((this[offset + 2].toInt() and 0xFF) shl 16) or
+                ((this[offset + 3].toInt() and 0xFF) shl 24)
         }
 
-        private fun readCString(bytes: ByteArray, offset: Int, maxLength: Int): String {
+        private fun readCString(
+            bytes: ByteArray,
+            offset: Int,
+            maxLength: Int,
+        ): String {
             val sb = StringBuilder()
             var i = offset
             while (i < minOf(bytes.size, offset + maxLength) && bytes[i].toInt() != 0) {

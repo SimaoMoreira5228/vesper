@@ -4,8 +4,10 @@ import vesper.core.IMemoryBus
 import vesper.core.memory.Address
 
 object Framebuffer {
-
-    fun readRaw(memory: IMemoryBus, state: GeState): ByteArray? {
+    fun readRaw(
+        memory: IMemoryBus,
+        state: GeState,
+    ): ByteArray? {
         val fbAddr = state.framebufferAddr
         if (fbAddr == Address.ZERO) return null
 
@@ -32,7 +34,10 @@ object Framebuffer {
         return data
     }
 
-    fun readRawContiguous(memory: IMemoryBus, state: GeState): ByteArray? {
+    fun readRawContiguous(
+        memory: IMemoryBus,
+        state: GeState,
+    ): ByteArray? {
         val fbAddr = state.framebufferAddr
         if (fbAddr == Address.ZERO) return null
 

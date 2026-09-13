@@ -2,7 +2,10 @@ package vesper.common
 
 fun Int.bit(offset: Int): Int = (this shr offset) and 1
 
-fun Int.bits(hi: Int, lo: Int): Int {
+fun Int.bits(
+    hi: Int,
+    lo: Int,
+): Int {
     val width = hi - lo + 1
     return if (width >= 32) this else (this shr lo) and ((1 shl width) - 1)
 }
@@ -18,7 +21,10 @@ fun Int.sextHalf(): Int = this.toShort().toInt()
 
 fun UInt.bit(offset: Int): UInt = (this shr offset) and 1u
 
-fun UInt.bits(hi: Int, lo: Int): UInt {
+fun UInt.bits(
+    hi: Int,
+    lo: Int,
+): UInt {
     val width = hi - lo + 1
     return if (width >= 32) this else (this shr lo) and ((1u shl width) - 1u)
 }

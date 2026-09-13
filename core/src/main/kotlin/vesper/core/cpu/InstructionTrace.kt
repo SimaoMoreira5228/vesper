@@ -7,7 +7,11 @@ internal class InstructionTrace(private val capacity: Int) {
     private var next = 0
     private var size = 0
 
-    fun record(pc: UInt, instruction: Int, state: CpuState) {
+    fun record(
+        pc: UInt,
+        instruction: Int,
+        state: CpuState,
+    ) {
         pcs[next] = pc.toInt()
         instructions[next] = instruction
         registers[0][next] = state.gpr(4)
@@ -26,32 +30,37 @@ internal class InstructionTrace(private val capacity: Int) {
         if (size < capacity) size++
     }
 
-    fun lines(): List<String> = List(size) { offset ->
-        val index = (next - size + offset + capacity) % capacity
-        formatInstructionTrace(
-            pc = pcs[index].toUInt(),
-            instruction = instructions[index],
-            a0 = registers[0][index],
-            a1 = registers[1][index],
-            a2 = registers[2][index],
-            a3 = registers[3][index],
-            v0 = registers[4][index],
-            v1 = registers[5][index],
-            ra = registers[6][index],
-            sp = registers[7][index],
-            t0 = registers[8][index],
-            t1 = registers[9][index],
-            t2 = registers[10][index],
-            t3 = registers[11][index],
-            s0 = registers[12][index],
-            s1 = registers[13][index],
-            s2 = registers[14][index],
-            s3 = registers[15][index],
-        )
-    }
+    fun lines(): List<String> =
+        List(size) { offset ->
+            val index = (next - size + offset + capacity) % capacity
+            formatInstructionTrace(
+                pc = pcs[index].toUInt(),
+                instruction = instructions[index],
+                a0 = registers[0][index],
+                a1 = registers[1][index],
+                a2 = registers[2][index],
+                a3 = registers[3][index],
+                v0 = registers[4][index],
+                v1 = registers[5][index],
+                ra = registers[6][index],
+                sp = registers[7][index],
+                t0 = registers[8][index],
+                t1 = registers[9][index],
+                t2 = registers[10][index],
+                t3 = registers[11][index],
+                s0 = registers[12][index],
+                s1 = registers[13][index],
+                s2 = registers[14][index],
+                s3 = registers[15][index],
+            )
+        }
 }
 
-internal fun formatInstructionTrace(pc: UInt, instruction: Int, state: CpuState): String =
+internal fun formatInstructionTrace(
+    pc: UInt,
+    instruction: Int,
+    state: CpuState,
+): String =
     formatInstructionTrace(
         pc = pc,
         instruction = instruction,

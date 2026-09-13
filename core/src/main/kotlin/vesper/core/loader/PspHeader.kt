@@ -100,17 +100,19 @@ data class PspHeader(
         }
 
         private fun ByteArray.readU32(offset: Int): UInt {
-            return ((this[offset].toInt() and 0xFF).toUInt() or
+            return (
+                (this[offset].toInt() and 0xFF).toUInt() or
                     ((this[offset + 1].toInt() and 0xFF).toUInt() shl 8) or
                     ((this[offset + 2].toInt() and 0xFF).toUInt() shl 16) or
-                    ((this[offset + 3].toInt() and 0xFF).toUInt() shl 24))
+                    ((this[offset + 3].toInt() and 0xFF).toUInt() shl 24)
+            )
         }
 
         private fun ByteArray.readS32(offset: Int): Int {
             return (this[offset].toInt() and 0xFF) or
-                    ((this[offset + 1].toInt() and 0xFF) shl 8) or
-                    ((this[offset + 2].toInt() and 0xFF) shl 16) or
-                    ((this[offset + 3].toInt() and 0xFF) shl 24)
+                ((this[offset + 1].toInt() and 0xFF) shl 8) or
+                ((this[offset + 2].toInt() and 0xFF) shl 16) or
+                ((this[offset + 3].toInt() and 0xFF) shl 24)
         }
     }
 }

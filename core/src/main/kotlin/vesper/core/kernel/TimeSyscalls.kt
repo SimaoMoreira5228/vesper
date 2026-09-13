@@ -38,7 +38,11 @@ fun SyscallTable.registerTimeConversionSyscalls() {
     }
 }
 
-private fun writeClock(memory: IMemoryBus, timePtr: Address, timezoneMinutes: Int) {
+private fun writeClock(
+    memory: IMemoryBus,
+    timePtr: Address,
+    timezoneMinutes: Int,
+) {
     val now = OffsetDateTime.now(ZoneOffset.UTC).plusMinutes(timezoneMinutes.toLong())
     memory.write16(timePtr, now.year)
     memory.write16(timePtr + 2, now.monthValue)
@@ -49,17 +53,28 @@ private fun writeClock(memory: IMemoryBus, timePtr: Address, timezoneMinutes: In
     memory.write32(timePtr + 12, now.nano / 1000)
 }
 
-private fun read64(memory: IMemoryBus, address: Address): ULong {
+private fun read64(
+    memory: IMemoryBus,
+    address: Address,
+): ULong {
     val low = memory.read32(address).toUInt().toULong()
     val high = memory.read32(address + 4).toUInt().toULong()
     return low or (high shl 32)
 }
 
-private fun write64(memory: IMemoryBus, address: Address, value: ULong) {
+private fun write64(
+    memory: IMemoryBus,
+    address: Address,
+    value: ULong,
+) {
     memory.write32(address, value.toInt())
     memory.write32(address + 4, (value shr 32).toInt())
 }
 
-private fun writeOptional(memory: IMemoryBus, address: Int, value: Int) {
+private fun writeOptional(
+    memory: IMemoryBus,
+    address: Int,
+    value: Int,
+) {
     if (address != 0) memory.write32(Address(address.toUInt()), value)
 }

@@ -38,7 +38,13 @@ class VectorUnitTest : StringSpec({
     "two-axis swizzle matches the vregs fixture" {
         val cpu = Cpu(MemoryBus())
         cpu.reset()
-        fun vreg(matrix: Int, row: Int, column: Int) = (row shl 5) or (matrix shl 2) or column
+
+        fun vreg(
+            matrix: Int,
+            row: Int,
+            column: Int,
+        ) = (row shl 5) or (matrix shl 2) or column
+
         fun vadd(register: Int): Int =
             (Opcode.VFPU0 shl 26) or (1 shl 15) or (1 shl 7) or
                 (register shl 16) or (register shl 8) or register

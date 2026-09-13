@@ -5,15 +5,14 @@ import vesper.common.info
 import vesper.common.trace
 import vesper.common.warn
 import vesper.core.ICpu
-import vesper.core.IMemoryBus
 import vesper.core.IKernel
+import vesper.core.IMemoryBus
 import vesper.core.memory.Address
 
 class Cpu(
     val memory: IMemoryBus,
     var kernel: IKernel? = null,
 ) : ICpu, Loggable {
-
     override val tag: String get() = "CPU"
 
     val state: CpuState = CpuState()
@@ -29,7 +28,7 @@ class Cpu(
     var traceStepCount: Int = 0
         private set
 
-    private val crashTrace = InstructionTrace(crashTraceSize)
+    private val crashTrace = InstructionTrace(CRASH_TRACE_SIZE)
     val lastTrace: List<String> get() = crashTrace.lines()
 
     fun recordCrashTrace() {
@@ -60,7 +59,7 @@ class Cpu(
     }
 
     companion object {
-        private const val crashTraceSize = 20
+        private const val CRASH_TRACE_SIZE = 20
         val logTag: String = "CPU"
     }
 
@@ -89,8 +88,10 @@ class Cpu(
         val insn = memory.read32(state.pc)
 
         if (state.pc.value < 0x04000000u && state.pc.value >= 0x1000u && traceStepCount > 10) {
-            warn { "Jumped to unmapped address 0x${state.pc.value.toString(16)} from 0x${lastInsnPc.value.toString(16)} " +
-                "ra=0x${state.gpr(31).toUInt().toString(16)}" }
+            warn {
+                "Jumped to unmapped address 0x${state.pc.value.toString(16)} from 0x${lastInsnPc.value.toString(16)} " +
+                    "ra=0x${state.gpr(31).toUInt().toString(16)}"
+            }
         }
 
         traceStepCount++
@@ -123,7 +124,10 @@ class Cpu(
 
     fun getLastInsnAddress(): Address = lastInsnPc
 
-    private fun handleException(exception: CpuException, pendingBranchTarget: Address?) {
+    private fun handleException(
+        exception: CpuException,
+        pendingBranchTarget: Address?,
+    ) {
         when (exception) {
             is CpuException.Syscall -> {
                 state.pc = pendingBranchTarget ?: (lastInsnPc + Address(4u))

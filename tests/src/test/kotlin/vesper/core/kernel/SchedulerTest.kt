@@ -1,9 +1,9 @@
 package vesper.core.kernel
 
 import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
-import io.kotest.matchers.ints.shouldBeGreaterThan
 import vesper.core.cpu.Cpu
 import vesper.core.memory.Address
 import vesper.core.memory.MemoryBus

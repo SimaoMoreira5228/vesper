@@ -1,10 +1,12 @@
 package vesper.core.kernel
 
-import vesper.common.Logger
 import vesper.core.cpu.Cpu
 
 fun interface SyscallHandler {
-    fun invoke(kernel: Kernel, cpu: Cpu): Int
+    fun invoke(
+        kernel: Kernel,
+        cpu: Cpu,
+    ): Int
 }
 
 class SyscallTable {
@@ -15,11 +17,19 @@ class SyscallTable {
 
     var trace: Boolean = false
 
-    fun register(nid: Int, name: String, handler: SyscallHandler) {
+    fun register(
+        nid: Int,
+        name: String,
+        handler: SyscallHandler,
+    ) {
         byNid[nid] = Entry(nid, name, handler)
     }
 
-    fun dispatch(nid: Int, kernel: Kernel, cpu: Cpu): Int {
+    fun dispatch(
+        nid: Int,
+        kernel: Kernel,
+        cpu: Cpu,
+    ): Int {
         val entry = byNid[nid]
         if (entry != null) {
             if (trace) {
@@ -27,7 +37,11 @@ class SyscallTable {
                 val a1 = cpu.state.gpr(5)
                 val a2 = cpu.state.gpr(6)
                 val a3 = cpu.state.gpr(7)
-                println("[SYSCALL] ${entry.name}(a0=0x${a0.toUInt().toString(16)}, a1=0x${a1.toUInt().toString(16)}, a2=0x${a2.toUInt().toString(16)}, a3=0x${a3.toUInt().toString(16)})")
+                println(
+                    "[SYSCALL] ${entry.name}(a0=0x${a0.toUInt().toString(
+                        16,
+                    )}, a1=0x${a1.toUInt().toString(16)}, a2=0x${a2.toUInt().toString(16)}, a3=0x${a3.toUInt().toString(16)})",
+                )
             }
             return entry.handler.invoke(kernel, cpu)
         }

@@ -21,7 +21,6 @@ data class FixedPool(
 )
 
 class MemoryManager : Loggable {
-
     override val tag: String get() = "MemoryManager"
 
     private var nextPartitionId: Int = 1
@@ -40,7 +39,7 @@ class MemoryManager : Loggable {
                 baseAddr = heapBase,
                 size = heapSize,
                 allocated = false,
-            )
+            ),
         )
     }
 
@@ -54,18 +53,19 @@ class MemoryManager : Loggable {
         val used = allocs.values.sumOf { it.size }
         val remaining = heapSize - used
         if (remaining >= alignedSize) {
-            val alloc = MemoryPartition(
-                id = nextPartitionId++,
-                name = name,
-                type = type,
-                baseAddr = if (addr >= 0) addr else (heapBase + used),
-                size = alignedSize,
-                allocated = true,
-            )
+            val alloc =
+                MemoryPartition(
+                    id = nextPartitionId++,
+                    name = name,
+                    type = type,
+                    baseAddr = if (addr >= 0) addr else (heapBase + used),
+                    size = alignedSize,
+                    allocated = true,
+                )
             allocs[alloc.id] = alloc
             return alloc.id
         }
-        warn { "Failed to allocate ${alignedSize} bytes for $name (remaining=$remaining)" }
+        warn { "Failed to allocate $alignedSize bytes for $name (remaining=$remaining)" }
         return -1
     }
 
@@ -96,7 +96,11 @@ class MemoryManager : Loggable {
     private var nextFixedPoolId: Int = 1
     private val fixedPools = mutableMapOf<Int, FixedPool>()
 
-    fun createFixedPool(name: String, blockSize: Int, blockCount: Int): Int {
+    fun createFixedPool(
+        name: String,
+        blockSize: Int,
+        blockCount: Int,
+    ): Int {
         if (blockSize <= 0 || blockCount <= 0) return -1
         val partition = allocPartitionMemory(name, 2, blockSize * blockCount)
         if (partition < 0) return -1
@@ -113,7 +117,10 @@ class MemoryManager : Loggable {
         return pool.base + index * pool.blockSize
     }
 
-    fun freeFixedPoolBlock(fplId: Int, address: Int): Int {
+    fun freeFixedPoolBlock(
+        fplId: Int,
+        address: Int,
+    ): Int {
         val pool = fixedPools[fplId] ?: return -1
         val index = (address - pool.base) / pool.blockSize
         if (index < 0 || index >= pool.blockCount || !pool.used[index]) return -1

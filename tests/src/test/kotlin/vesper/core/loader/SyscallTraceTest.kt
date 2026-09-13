@@ -1,15 +1,16 @@
 package vesper.core.loader
 
 import io.kotest.core.spec.style.StringSpec
-import io.kotest.matchers.shouldBe
 import io.kotest.matchers.ints.shouldBeGreaterThan
+import io.kotest.matchers.shouldBe
 
 class SyscallTraceTest : StringSpec({
 
     fun resource(name: String): ByteArray {
         val path = "pspautotests/tests/$name"
-        val url = SyscallTraceTest::class.java.classLoader.getResource(path)
-            ?: throw RuntimeException("Resource not found: $path")
+        val url =
+            SyscallTraceTest::class.java.classLoader.getResource(path)
+                ?: throw RuntimeException("Resource not found: $path")
         return url.readBytes()
     }
 

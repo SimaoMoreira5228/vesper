@@ -7,11 +7,20 @@ import vesper.core.memory.MemoryBus
 
 class FloatingPointTest : StringSpec({
 
-    fun single(ft: Int, fs: Int, fd: Int, funct: Int): Int =
-        (Opcode.COP1 shl 26) or (16 shl 21) or (ft shl 16) or (fs shl 11) or (fd shl 6) or funct
+    fun single(
+        ft: Int,
+        fs: Int,
+        fd: Int,
+        funct: Int,
+    ): Int = (Opcode.COP1 shl 26) or (16 shl 21) or (ft shl 16) or (fs shl 11) or (fd shl 6) or funct
 
-    fun cop1(rs: Int, rt: Int = 0, rd: Int = 0, fd: Int = 0, funct: Int = 0): Int =
-        (Opcode.COP1 shl 26) or (rs shl 21) or (rt shl 16) or (rd shl 11) or (fd shl 6) or funct
+    fun cop1(
+        rs: Int,
+        rt: Int = 0,
+        rd: Int = 0,
+        fd: Int = 0,
+        funct: Int = 0,
+    ): Int = (Opcode.COP1 shl 26) or (rs shl 21) or (rt shl 16) or (rd shl 11) or (fd shl 6) or funct
 
     fun multiply(roundingMode: Int): Float {
         val cpu = Cpu(MemoryBus())

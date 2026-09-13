@@ -31,7 +31,6 @@ data class KEventFlag(
 class SynchPrimitives(
     private val scheduler: Scheduler,
 ) : Loggable {
-
     override val tag: String get() = "SynchPrimitives"
     private var nextSemaId: Int = 1
     private var nextMutexId: Int = 1
@@ -43,20 +42,30 @@ class SynchPrimitives(
     private val mutexes = mutableMapOf<Int, KMutex>()
     private val eventFlags = mutableMapOf<Int, KEventFlag>()
 
-    fun createSemaphore(name: String, attr: Int, initialCount: Int, maxCount: Int): Int {
+    fun createSemaphore(
+        name: String,
+        attr: Int,
+        initialCount: Int,
+        maxCount: Int,
+    ): Int {
         val id = nextSemaId++
-        semaphores[id] = KSemaphore(
-            id = id,
-            name = name,
-            attr = attr,
-            initialCount = initialCount.coerceIn(0, maxCount),
-            count = initialCount.coerceIn(0, maxCount),
-            maxCount = maxCount,
-        )
+        semaphores[id] =
+            KSemaphore(
+                id = id,
+                name = name,
+                attr = attr,
+                initialCount = initialCount.coerceIn(0, maxCount),
+                count = initialCount.coerceIn(0, maxCount),
+                maxCount = maxCount,
+            )
         return id
     }
 
-    fun referSemaphoreStatus(semaId: Int, infoPtr: Address, memory: IMemoryBus) {
+    fun referSemaphoreStatus(
+        semaId: Int,
+        infoPtr: Address,
+        memory: IMemoryBus,
+    ) {
         val sema = semaphores[semaId] ?: return
         memory.write32(infoPtr, semaInfoSize)
         writeName(memory, infoPtr + 4, sema.name)
@@ -67,7 +76,11 @@ class SynchPrimitives(
         memory.write32(infoPtr + 0x34, sema.waitingThreads.size)
     }
 
-    private fun writeName(memory: IMemoryBus, ptr: Address, name: String) {
+    private fun writeName(
+        memory: IMemoryBus,
+        ptr: Address,
+        name: String,
+    ) {
         val bytes = ByteArray(32)
         name.encodeToByteArray().copyInto(bytes, endIndex = minOf(name.length, 31))
         memory.writeBytes(ptr, bytes)
@@ -82,7 +95,10 @@ class SynchPrimitives(
         return 0
     }
 
-    fun signalSemaphore(semaId: Int, signal: Int): Int {
+    fun signalSemaphore(
+        semaId: Int,
+        signal: Int,
+    ): Int {
         val sema = semaphores[semaId] ?: return -1
         sema.count = min(sema.count + signal, sema.maxCount)
         val waiters = sema.waitingThreads.iterator()
@@ -98,7 +114,11 @@ class SynchPrimitives(
         return 0
     }
 
-    fun waitSemaphore(semaId: Int, need: Int, cb: Boolean): Int {
+    fun waitSemaphore(
+        semaId: Int,
+        need: Int,
+        cb: Boolean,
+    ): Int {
         val sema = semaphores[semaId] ?: return -1
         if (sema.count >= need) {
             sema.count -= need
@@ -115,7 +135,9 @@ class SynchPrimitives(
         return if (sema.count > 0) {
             sema.count--
             0
-        } else -1
+        } else {
+            -1
+        }
     }
 
     fun createMutex(recursive: Boolean = true): Int {
@@ -165,7 +187,10 @@ class SynchPrimitives(
         return id
     }
 
-    fun setEventFlag(flagId: Int, bits: Int): Int {
+    fun setEventFlag(
+        flagId: Int,
+        bits: Int,
+    ): Int {
         val flag = eventFlags[flagId] ?: return -1
         flag.bits = flag.bits or bits
         val toRemove = mutableListOf<Pair<Int, Int>>()
@@ -180,13 +205,22 @@ class SynchPrimitives(
         return 0
     }
 
-    fun clearEventFlag(flagId: Int, bits: Int): Int {
+    fun clearEventFlag(
+        flagId: Int,
+        bits: Int,
+    ): Int {
         val flag = eventFlags[flagId] ?: return -1
         flag.bits = flag.bits and bits.inv()
         return 0
     }
 
-    fun waitEventFlag(flagId: Int, pattern: Int, waitSet: Int, clearBits: Int, timeout: Int): Int {
+    fun waitEventFlag(
+        flagId: Int,
+        pattern: Int,
+        waitSet: Int,
+        clearBits: Int,
+        timeout: Int,
+    ): Int {
         val flag = eventFlags[flagId] ?: return -1
         if (flag.bits and pattern == pattern) {
             flag.bits = flag.bits and clearBits.inv()

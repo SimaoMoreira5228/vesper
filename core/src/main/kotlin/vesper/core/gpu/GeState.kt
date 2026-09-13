@@ -42,7 +42,10 @@ class GeState {
         const val FRAMEBUFFER_STRIDE_DEFAULT = 512
     }
 
-    fun setRegister(index: Int, value: UInt) {
+    fun setRegister(
+        index: Int,
+        value: UInt,
+    ) {
         if (index in cmdmem.indices) cmdmem[index] = value
     }
 
@@ -71,11 +74,15 @@ class GeState {
 
     var framebufferStride: Int
         get() = cmdmem[REG_FRAMEBUFFER_STRIDE].toInt()
-        set(value) { cmdmem[REG_FRAMEBUFFER_STRIDE] = value.toUInt() }
+        set(value) {
+            cmdmem[REG_FRAMEBUFFER_STRIDE] = value.toUInt()
+        }
 
     var pixelFormat: Int
         get() = cmdmem[REG_FRAMEBUFFER_FORMAT].toInt()
-        set(value) { cmdmem[REG_FRAMEBUFFER_FORMAT] = value.toUInt() }
+        set(value) {
+            cmdmem[REG_FRAMEBUFFER_FORMAT] = value.toUInt()
+        }
 
     val framebufferWidth: Int get() = 480
     val framebufferHeight: Int get() = 272
@@ -87,7 +94,11 @@ class GeState {
         }
     }
 
-    fun setDisplayBuf(addr: Address, stride: Int, format: Int) {
+    fun setDisplayBuf(
+        addr: Address,
+        stride: Int,
+        format: Int,
+    ) {
         framebufferAddr = addr
         displayAddr = addr
         framebufferStride = if (stride > 0) stride else FRAMEBUFFER_STRIDE_DEFAULT

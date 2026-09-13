@@ -8,14 +8,16 @@ import vesper.core.kernel.Kernel
 import vesper.core.memory.Address
 
 class ModuleLoader : Loggable {
-
     override val tag: String get() = "ModuleLoader"
     private val defaultBase = 0x08804000u
 
     var stdoutAddr: Address? = null
         private set
 
-    fun load(bytes: ByteArray, memory: IMemoryBus): Result<ElfImage> {
+    fun load(
+        bytes: ByteArray,
+        memory: IMemoryBus,
+    ): Result<ElfImage> {
         val loader = ElfLoader()
         return loader.load(bytes).map { image ->
             val relocated = relocateImage(image)
@@ -48,21 +50,31 @@ class ModuleLoader : Loggable {
         val delta = defaultBase
         info { "Relocating by +0x${delta.toString(16)}" }
 
-        val relocated = image.segments.map { seg ->
-            seg.copy(vaddr = seg.vaddr + delta, requestedVaddr = seg.vaddr)
-        }
-        val newEntry = if (image.entryPoint.value < 0x100000u)
-            Address(delta + image.entryPoint.value) else image.entryPoint
+        val relocated =
+            image.segments.map { seg ->
+                seg.copy(vaddr = seg.vaddr + delta, requestedVaddr = seg.vaddr)
+            }
+        val newEntry =
+            if (image.entryPoint.value < 0x100000u) {
+                Address(delta + image.entryPoint.value)
+            } else {
+                image.entryPoint
+            }
 
-        val relocatedImports = image.imports.map { imp ->
-            imp.copy(stubAddr = imp.stubAddr + delta)
-        }
+        val relocatedImports =
+            image.imports.map { imp ->
+                imp.copy(stubAddr = imp.stubAddr + delta)
+            }
 
-        val relocatedRelocGroups = image.relocGroups.map { group ->
-            group.copy(relocs = group.relocs.map { reloc ->
-                reloc.copy(offset = reloc.offset)
-            })
-        }
+        val relocatedRelocGroups =
+            image.relocGroups.map { group ->
+                group.copy(
+                    relocs =
+                        group.relocs.map { reloc ->
+                            reloc.copy(offset = reloc.offset)
+                        },
+                )
+            }
 
         return image.copy(
             segments = relocated,
@@ -73,7 +85,10 @@ class ModuleLoader : Loggable {
         )
     }
 
-    fun loadImageIntoMemory(image: ElfImage, memory: IMemoryBus) {
+    fun loadImageIntoMemory(
+        image: ElfImage,
+        memory: IMemoryBus,
+    ) {
         for (seg in image.segments) {
             val addr = Address(seg.vaddr)
             memory.writeBytes(addr, seg.data)
@@ -97,7 +112,11 @@ class ModuleLoader : Loggable {
         }
     }
 
-    fun resolveImports(image: ElfImage, memory: IMemoryBus, kernel: Kernel) {
+    fun resolveImports(
+        image: ElfImage,
+        memory: IMemoryBus,
+        kernel: Kernel,
+    ) {
         for (entry in image.imports) {
             val addr = Address(entry.stubAddr)
             val syscallAddr = addr + 4
@@ -107,7 +126,10 @@ class ModuleLoader : Loggable {
         }
     }
 
-    fun startImage(image: ElfImage, cpu: Cpu) {
+    fun startImage(
+        image: ElfImage,
+        cpu: Cpu,
+    ) {
         cpu.reset()
         cpu.state.pc = image.entryPoint
         if (image.globalPointer != 0u) cpu.state.setGpr(28, image.globalPointer.toInt())
@@ -125,5 +147,4 @@ class ModuleLoader : Loggable {
         }
         info { "Starting module at ${image.entryPoint}, SP=0x${spAddr.toString(16)}, segEnd=0x${segEnd.toString(16)}" }
     }
-
 }
