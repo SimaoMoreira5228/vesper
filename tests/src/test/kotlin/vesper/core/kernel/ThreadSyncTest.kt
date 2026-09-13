@@ -38,8 +38,8 @@ class ThreadSyncTest : StringSpec({
         val kernel = makeKernel()
         val semaId = kernel.synchPrimitives.createSemaphore("s", 0, 1, 10)
 
-        kernel.synchPrimitives.pollSemaphore(semaId) shouldBe 0
-        kernel.synchPrimitives.pollSemaphore(semaId) shouldBe -1
+        kernel.synchPrimitives.pollSemaphore(semaId, 1) shouldBe 0
+        kernel.synchPrimitives.pollSemaphore(semaId, 1) shouldBe 0x800201AD.toInt()
     }
 
     "delete semaphore cleans up" {
@@ -79,7 +79,7 @@ class ThreadSyncTest : StringSpec({
         val kernel = makeKernel()
         val flagId = kernel.synchPrimitives.createEventFlag(0xFF)
 
-        kernel.synchPrimitives.waitEventFlag(flagId, 0x0F, 0, 0, 0) shouldBe 0
+        kernel.synchPrimitives.waitEventFlag(flagId, 0x0F, 0) shouldBe 0
     }
 
     "clear event flag bits" {

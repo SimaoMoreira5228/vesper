@@ -103,7 +103,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0x1D8A762E, "sceRegOpenCategory") { _, _ -> 0 }
     register(0x1E490401, "scePowerIsBatteryCharging") { _, _ -> 0 }
     register(0x1F6752AD, "sceGeEdramGetSize") { _, _ -> 0 }
-    register(0x1FB15A32, "sceKernelSetEventFlag") { _, _ -> 0 }
     register(0x1FC64E09, "sceKernelLockLwMutexCB") { _, _ -> 0 }
     register(0x20628E6F, "sceUmdGetErrorStat") { _, _ -> 0 }
     register(0x208DB1BD, "sceHprmIsRemoteExist") { _, _ -> 0 }
@@ -157,7 +156,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0x2FE71FE7, "sceNetInetSetsockopt") { _, _ -> 0 }
     register(0x3054D478, "sceKernelStdioRead") { _, _ -> 0 }
     register(0x30BE0259, "sceRegGetKeyValueByName") { _, _ -> 0 }
-    register(0x30FD48F0, "sceKernelPollEventFlag") { _, _ -> 0 }
     register(0x31327F19, "ThreadManForUser_31327F19") { _, _ -> 0 }
     register(0x315AD3A0, "SysMemUserForUser_315AD3A0") { _, _ -> 0 }
     register(0x31668BAA, "sceAtracGetChannel") { _, _ -> 0 }
@@ -221,7 +219,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0x3F6E26B5, "sceAtracSetHalfwayBuffer") { _, _ -> 0 }
     register(0x3FC9AE6A, "sceKernelDevkitVersion") { _, _ -> 0 }
     register(0x3FD3D324, "UtilsForKernel_3FD3D324") { _, _ -> 0 }
-    register(0x402FCF22, "sceKernelWaitEventFlag") { _, _ -> 0 }
     register(0x40D2F9F0, "sceHprmReadLatch") { _, _ -> 0 }
     register(0x40F1469C, "sceDisplay_40F1469C") { _, _ -> 0 }
     register(0x410B34AA, "sceNetInetConnect") { _, _ -> 0 }
@@ -283,7 +280,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0x545A7F3C, "scePower_545A7F3C") { _, _ -> 0 }
     register(0x54A5C62F, "sceUtility_54A5C62F") { _, _ -> 0 }
     register(0x5595A71A, "sceImposeSetHomePopup") { _, _ -> 0 }
-    register(0x55C20A00, "sceKernelCreateEventFlag") { _, _ -> 0 }
     register(0x55F4717D, "sceIoChdir") { _, _ -> 0 }
     register(0x5622B7C1, "sceAtracSetAA3DataAndGetID") { _, _ -> 0 }
     register(0x568BE516, "sceFontGetShadowGlyphImage") { _, _ -> 0 }
@@ -298,7 +294,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0x591A4AA2, "sceMpegUnRegistStream") { _, _ -> 0 }
     register(0x5AC68A41, "sceMpeg_5AC68A41") { _, _ -> 0 }
     register(0x5BE8D595, "sceNetInetSelect") { _, _ -> 0 }
-    register(0x5BF4DD27, "sceKernelLockMutexCB") { _, _ -> 0 }
     register(0x5C2BE2CC, "sceIoGetFdList") { _, _ -> 0 }
     register(0x5C37C0AE, "sceAudioSRCChRelease") { _, _ -> 0 }
     register(0x5C3E4A9E, "sceFontGetCharImageRect") { _, _ -> 0 }
@@ -345,7 +340,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0x6A8C3CD5, "sceAtracDecodeData") { _, _ -> 0 }
     register(0x6AD345D7, "sceKernelSetGPO") { _, _ -> 0 }
     register(0x6AF9B50A, "sceUmdCancelWaitDriveStat") { _, _ -> 0 }
-    register(0x6B30100F, "sceKernelUnlockMutex") { _, _ -> 0 }
     register(0x6B3E192B, "LoadCoreForKernel_6B3E192B") { _, _ -> 0 }
     register(0x6B4A146C, "sceUmdGetDriveStat") { _, _ -> 0 }
     register(0x6C00BE57, "LoadCoreForKernel_6C00BE57") { _, _ -> 0 }
@@ -414,7 +408,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0x800C44DF.toInt(), "sceMpegAtracDecode") { _, _ -> 0 }
     register(0x805502DD.toInt(), "sceNetInetCloseWithRST") { _, _ -> 0 }
     register(0x80A21ABD.toInt(), "sceNetInetSocketAbort") { _, _ -> 0 }
-    register(0x812346E4.toInt(), "sceKernelClearEventFlag") { _, _ -> 0 }
     register(0x8125221D.toInt(), "sceKernelCreateMbx") { _, _ -> 0 }
     register(0x81AEE1BE.toInt(), "sceNetAdhocctlGetScanInfo") { _, _ -> 0 }
     register(0x81C44706.toInt(), "sceUtility_81C44706") { _, _ -> 0 }
@@ -557,7 +550,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0xAF36D708.toInt(), "sceKernelTryAllocateVpl") { _, _ -> 0 }
     register(0xAF3766BB.toInt(), "UtilsForKernel_AF3766BB") { _, _ -> 0 }
     register(0xAF5960F3.toInt(), "sceCtrl_AF5960F3") { _, _ -> 0 }
-    register(0xB011B11F.toInt(), "sceKernelLockMutex") { _, _ -> 0 }
     register(0xB0B80E80.toInt(), "sceNetAdhocctl_B0B80E80") { _, _ -> 0 }
     register(0xB0E9C31F.toInt(), "sceKernelGzipGetInfo") { _, _ -> 0 }
     register(0xB0FB7FF5.toInt(), "sceUtility_B0FB7FF5") { _, _ -> 0 }
@@ -591,7 +583,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0xB75D5B0A.toInt(), "sceNetInetInetAddr") { _, _ -> 0 }
     register(0xB7660A23.toInt(), "__sceSasSetNoise") { _, _ -> 0 }
     register(0xB7C18B77.toInt(), "sceKernelGetVTimerBaseWide") { _, _ -> 0 }
-    register(0xB7D098C6.toInt(), "sceKernelCreateMutex") { _, _ -> 0 }
     register(0xB7E1D8E7.toInt(), "sceAudioChangeChannelVolume") { _, _ -> 0 }
     register(0xB7F46618.toInt(), "sceKernelLoadModuleByID") { _, _ -> 0 }
     register(0xB83A1E76.toInt(), "UtilsForKernel_B83A1E76") { _, _ -> 0 }
@@ -770,7 +761,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0xEECE61D2.toInt(), "sceNetInetRecvmsg") { _, _ -> 0 }
     register(0xEEDA2E54.toInt(), "sceDisplayGetFrameBuf") { _, _ -> 0 }
     register(0xEF3582B2.toInt(), "sceUtility_EF3582B2") { _, _ -> 0 }
-    register(0xEF9E4C70.toInt(), "sceKernelDeleteEventFlag") { _, _ -> 0 }
     register(0xEFD3C963.toInt(), "scePowerTick") { _, _ -> 0 }
     register(0xF006F264.toInt(), "sceRtcSetDosTime") { _, _ -> 0 }
     register(0xF0155BCA.toInt(), "UtilsForKernel_F0155BCA") { _, _ -> 0 }
@@ -794,7 +784,6 @@ fun SyscallTable.registerAllKpspemuStubs() {
     register(0xF6C7F05C.toInt(), "LoadCoreForKernel_F6C7F05C") { _, _ -> 0 }
     register(0xF79472D7.toInt(), "sceNetAdhocMatchingSendData") { _, _ -> 0 }
     register(0xF7D8D092.toInt(), "sceUtilityUnloadAvModule") { _, _ -> 0 }
-    register(0xF8170FBE.toInt(), "sceKernelDeleteMutex") { _, _ -> 0 }
     register(0xF88155F6.toInt(), "sceUtilityNetconfShutdownStart") { _, _ -> 0 }
     register(0xF8DCB679.toInt(), "sceMpegQueryAtracEsSize") { _, _ -> 0 }
     register(0xF8F0752E.toInt(), "sceFontPixelToPointV") { _, _ -> 0 }

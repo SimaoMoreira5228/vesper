@@ -548,7 +548,63 @@ class Kernel(
 
         syscallTable.register(Nids.POLL_SEMA, "sceKernelPollSema") { kernel, cpu ->
             val semaId = cpu.state.gpr(4)
-            kernel.synchPrimitives.pollSemaphore(semaId)
+            kernel.synchPrimitives.pollSemaphore(semaId, cpu.state.gpr(5))
+        }
+
+        syscallTable.register(Nids.CREATE_MUTEX, "sceKernelCreateMutex") { kernel, _ ->
+            kernel.synchPrimitives.createMutex()
+        }
+
+        syscallTable.register(Nids.LOCK_MUTEX, "sceKernelLockMutex") { kernel, cpu ->
+            kernel.synchPrimitives.lockMutex(cpu.state.gpr(4))
+        }
+
+        syscallTable.register(Nids.LOCK_MUTEX_CB, "sceKernelLockMutexCB") { kernel, cpu ->
+            val result = kernel.synchPrimitives.lockMutex(cpu.state.gpr(4))
+            kernel.checkCallbacks()
+            result
+        }
+
+        syscallTable.register(Nids.UNLOCK_MUTEX, "sceKernelUnlockMutex") { kernel, cpu ->
+            kernel.synchPrimitives.unlockMutex(cpu.state.gpr(4))
+        }
+
+        syscallTable.register(Nids.DELETE_MUTEX, "sceKernelDeleteMutex") { kernel, cpu ->
+            kernel.synchPrimitives.deleteMutex(cpu.state.gpr(4))
+        }
+
+        syscallTable.register(Nids.CREATE_EVENT_FLAG, "sceKernelCreateEventFlag") { kernel, cpu ->
+            kernel.synchPrimitives.createEventFlag(cpu.state.gpr(6))
+        }
+
+        syscallTable.register(Nids.SET_EVENT_FLAG, "sceKernelSetEventFlag") { kernel, cpu ->
+            kernel.synchPrimitives.setEventFlag(cpu.state.gpr(4), cpu.state.gpr(5))
+        }
+
+        syscallTable.register(Nids.CLEAR_EVENT_FLAG, "sceKernelClearEventFlag") { kernel, cpu ->
+            kernel.synchPrimitives.clearEventFlag(cpu.state.gpr(4), cpu.state.gpr(5))
+        }
+
+        syscallTable.register(Nids.WAIT_EVENT_FLAG, "sceKernelWaitEventFlag") { kernel, cpu ->
+            val result = kernel.synchPrimitives.waitEventFlag(cpu.state.gpr(4), cpu.state.gpr(5), cpu.state.gpr(6))
+            if (result == 0) {
+                val outBits = cpu.state.gpr(7)
+                if (outBits != 0) kernel.memory.write32(Address(outBits.toUInt()), kernel.synchPrimitives.eventFlagBits(cpu.state.gpr(4)))
+            }
+            result
+        }
+
+        syscallTable.register(Nids.POLL_EVENT_FLAG, "sceKernelPollEventFlag") { kernel, cpu ->
+            val result = kernel.synchPrimitives.pollEventFlag(cpu.state.gpr(4), cpu.state.gpr(5), cpu.state.gpr(6))
+            if (result == 0) {
+                val outBits = cpu.state.gpr(7)
+                if (outBits != 0) kernel.memory.write32(Address(outBits.toUInt()), kernel.synchPrimitives.eventFlagBits(cpu.state.gpr(4)))
+            }
+            result
+        }
+
+        syscallTable.register(Nids.DELETE_EVENT_FLAG, "sceKernelDeleteEventFlag") { kernel, cpu ->
+            kernel.synchPrimitives.deleteEventFlag(cpu.state.gpr(4))
         }
     }
 

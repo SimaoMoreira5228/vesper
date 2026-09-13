@@ -28,6 +28,7 @@ class PspAutotestSuiteTest : StringSpec({
             Case("string/string"),
             Case("threads/threads/threads"),
             Case("threads/semaphores/semaphores"),
+            Case("threads/mutex/mutex"),
         )
 
     fun resource(path: String): ByteArray {

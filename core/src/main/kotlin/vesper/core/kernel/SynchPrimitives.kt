@@ -37,6 +37,12 @@ class SynchPrimitives(
     private var nextEventFlagId: Int = 1
     private val semaInfoSize: Int = 56
     private val unknownSema: Int = 0x80020199.toInt()
+    private val semaZero: Int = 0x800201AD.toInt()
+    private val semaOverflow: Int = 0x800201BD.toInt()
+    private val unknownMutex: Int = 0x800201C3.toInt()
+    private val notMutexOwner: Int = 0x800201C5.toInt()
+    private val unknownEventFlag: Int = 0x800201AF.toInt()
+    private val eventFlagCondition: Int = 0x800201AF.toInt()
 
     private val semaphores = mutableMapOf<Int, KSemaphore>()
     private val mutexes = mutableMapOf<Int, KMutex>()
@@ -130,14 +136,18 @@ class SynchPrimitives(
         return 0
     }
 
-    fun pollSemaphore(semaId: Int): Int {
-        val sema = semaphores[semaId] ?: return -1
-        return if (sema.count > 0) {
-            sema.count--
-            0
-        } else {
-            -1
+    fun pollSemaphore(
+        semaId: Int,
+        need: Int,
+    ): Int {
+        val sema = semaphores[semaId] ?: return unknownSema
+        if (need < 0) return semaOverflow
+        if (need == 0) return if (sema.count > 0) semaOverflow else semaZero
+        if (sema.count >= need) {
+            sema.count -= need
+            return 0
         }
+        return semaZero
     }
 
     fun createMutex(recursive: Boolean = true): Int {
@@ -146,8 +156,13 @@ class SynchPrimitives(
         return id
     }
 
+    fun deleteMutex(mutexId: Int): Int {
+        mutexes.remove(mutexId) ?: return unknownMutex
+        return 0
+    }
+
     fun lockMutex(mutexId: Int): Int {
-        val mutex = mutexes[mutexId] ?: return -1
+        val mutex = mutexes[mutexId] ?: return unknownMutex
         if (mutex.lockedBy == null) {
             mutex.lockedBy = scheduler.currentThreadId
             mutex.lockCount = 1
@@ -165,8 +180,8 @@ class SynchPrimitives(
     }
 
     fun unlockMutex(mutexId: Int): Int {
-        val mutex = mutexes[mutexId] ?: return -1
-        if (mutex.lockedBy != scheduler.currentThreadId) return -1
+        val mutex = mutexes[mutexId] ?: return unknownMutex
+        if (mutex.lockedBy != scheduler.currentThreadId) return notMutexOwner
         mutex.lockCount--
         if (mutex.lockCount == 0) {
             mutex.lockedBy = null
@@ -191,7 +206,7 @@ class SynchPrimitives(
         flagId: Int,
         bits: Int,
     ): Int {
-        val flag = eventFlags[flagId] ?: return -1
+        val flag = eventFlags[flagId] ?: return unknownEventFlag
         flag.bits = flag.bits or bits
         val toRemove = mutableListOf<Pair<Int, Int>>()
         for ((tid, pattern) in flag.waitingThreads) {
@@ -209,21 +224,21 @@ class SynchPrimitives(
         flagId: Int,
         bits: Int,
     ): Int {
-        val flag = eventFlags[flagId] ?: return -1
+        val flag = eventFlags[flagId] ?: return unknownEventFlag
         flag.bits = flag.bits and bits.inv()
         return 0
     }
+
+    fun eventFlagBits(flagId: Int): Int = eventFlags[flagId]?.bits ?: 0
 
     fun waitEventFlag(
         flagId: Int,
         pattern: Int,
         waitSet: Int,
-        clearBits: Int,
-        timeout: Int,
     ): Int {
-        val flag = eventFlags[flagId] ?: return -1
-        if (flag.bits and pattern == pattern) {
-            flag.bits = flag.bits and clearBits.inv()
+        val flag = eventFlags[flagId] ?: return unknownEventFlag
+        if (eventFlagSatisfied(flag.bits, pattern, waitSet)) {
+            if (waitSet and 0x10 != 0) flag.bits = flag.bits and pattern.inv()
             return 0
         }
         flag.waitingThreads.add(Pair(scheduler.currentThreadId, pattern))
@@ -233,8 +248,25 @@ class SynchPrimitives(
         return 0
     }
 
+    fun pollEventFlag(
+        flagId: Int,
+        pattern: Int,
+        waitSet: Int,
+    ): Int {
+        val flag = eventFlags[flagId] ?: return unknownEventFlag
+        if (!eventFlagSatisfied(flag.bits, pattern, waitSet)) return eventFlagCondition
+        if (waitSet and 0x10 != 0) flag.bits = flag.bits and pattern.inv()
+        return 0
+    }
+
+    private fun eventFlagSatisfied(
+        bits: Int,
+        pattern: Int,
+        waitSet: Int,
+    ): Boolean = if (waitSet and 0x02 != 0) (bits and pattern) == pattern else (bits and pattern) != 0
+
     fun deleteEventFlag(flagId: Int): Int {
-        val flag = eventFlags.remove(flagId) ?: return -1
+        val flag = eventFlags.remove(flagId) ?: return unknownEventFlag
         for ((tid, _) in flag.waitingThreads) {
             scheduler.makeReady(tid)
         }
